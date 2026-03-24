@@ -38,6 +38,7 @@ const SECTIONS: { key: SettingKey; label: string; description: string; rows: num
 
 export default function SettingsPage() {
   const [values, setValues] = useState<Record<string, string>>({})
+  const [savedValues, setSavedValues] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -48,9 +49,25 @@ export default function SettingsPage() {
       .then(r => r.json())
       .then(data => {
         setValues(data)
+        setSavedValues(data)
         setLoading(false)
       })
   }, [])
+
+  // Warn on navigation away with unsaved changes
+  const isDirty = SECTIONS.some(({ key, defaultValue }) => {
+    const current = values[key] !== undefined ? values[key] : defaultValue
+    const persisted = savedValues[key] !== undefined ? savedValues[key] : defaultValue
+    return current !== persisted
+  })
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) { e.preventDefault() }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   const getValue = (key: SettingKey, defaultValue: string) =>
     values[key] !== undefined ? values[key] : defaultValue
@@ -72,6 +89,11 @@ export default function SettingsPage() {
       if (failed) {
         setSaveError(failed.error)
       } else {
+        const snapshot: Record<string, string> = {}
+        SECTIONS.forEach(({ key, defaultValue }) => {
+          snapshot[key] = values[key] !== undefined ? values[key] : defaultValue
+        })
+        setSavedValues(snapshot)
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
       }
@@ -141,29 +163,32 @@ export default function SettingsPage() {
       </div>
 
       {/* Single save button */}
-      <div className="mt-8 flex items-center justify-end gap-4">
-        {saveError && (
-          <span className="text-sm text-red-600 font-medium">
-            {saveError}
+      <div className="mt-8 flex items-center justify-between gap-4">
+        {isDirty && !saving && (
+          <span className="text-xs text-amber-600 font-medium flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+            Unsaved changes
           </span>
         )}
-        {saved && (
-          <span className="text-sm text-green-600 font-medium animate-fade-in-up">
-            Changes saved successfully ✓
-          </span>
-        )}
-        <button
-          onClick={handleSaveAll}
-          disabled={saving}
-          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {saving ? (
-            <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              Saving…
-            </span>
-          ) : 'Save Changes'}
-        </button>
+        {!isDirty && <span />}
+        <div className="flex items-center gap-4">
+          <div role="status" aria-live="polite" className="text-sm font-medium">
+            {saveError && <span className="text-red-600">{saveError}</span>}
+            {saved && <span className="text-green-600 animate-fade-in-up">Changes saved successfully ✓</span>}
+          </div>
+          <button
+            onClick={handleSaveAll}
+            disabled={saving}
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                Saving…
+              </span>
+            ) : 'Save Changes'}
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -40,6 +40,13 @@ body {
   animation: fadeInUp 0.25s ease-out both;
 }
 
+/* Accessible focus ring — only shown on keyboard nav, not mouse clicks */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Staggered children */
 .animate-fade-in-up > * {
   animation: fadeInUp 0.25s ease-out both;

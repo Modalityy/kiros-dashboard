@@ -90,7 +90,17 @@ export default async function BookingsPage() {
             <tbody className="divide-y divide-slate-50">
               {upcoming.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">No upcoming bookings.</td>
+                  <td colSpan={5}>
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mb-3">
+                        <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-slate-700 font-medium text-sm">No upcoming sessions</p>
+                      <p className="text-slate-400 text-xs mt-1">Bookings made through Eh-va will appear here automatically.</p>
+                    </div>
+                  </td>
                 </tr>
               ) : (
                 upcoming.map((b: any) => (
@@ -136,7 +146,17 @@ export default async function BookingsPage() {
             <tbody className="divide-y divide-slate-50">
               {past.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">No past bookings.</td>
+                  <td colSpan={5}>
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-slate-700 font-medium text-sm">No past or cancelled sessions</p>
+                      <p className="text-slate-400 text-xs mt-1">Completed and cancelled bookings will be archived here.</p>
+                    </div>
+                  </td>
                 </tr>
               ) : (
                 past.map((b: any) => (

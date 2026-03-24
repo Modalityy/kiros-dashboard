@@ -83,10 +83,11 @@ export async function updateClientObjectives(
   phone: string,
   objectives: { objective_1?: string; objective_2?: string; objective_3?: string; objective_4?: string }
 ): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from('clients')
     .update(objectives)
     .ilike('phone_number', `%${phone.slice(-8)}%`)
+  if (error) throw error
 }
 
 // ── Call helpers ───────────────────────────────────────────────────────────
@@ -108,13 +109,14 @@ export async function createCall(data: {
 }
 
 export async function updateCall(vapiCallId: string, data: Partial<Call>): Promise<void> {
-  await supabase.from('calls').update(data).eq('vapi_call_id', vapiCallId)
+  const { error } = await supabase.from('calls').update(data).eq('vapi_call_id', vapiCallId)
+  if (error) throw error
 }
 
 export async function getCalls(limit = 50): Promise<Call[]> {
   const { data } = await supabase
     .from('calls')
-    .select('*, clients(first_name, last_name, email)')
+    .select('*, clients(*)')
     .order('created_at', { ascending: false })
     .limit(limit)
   return data ?? []

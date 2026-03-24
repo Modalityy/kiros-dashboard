@@ -1,5 +1,7 @@
-import { getCalls, getUpcomingBookings } from '@/lib/supabase'
+import { getUpcomingBookings } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 async function getStats() {
   const supabase = createClient(
@@ -54,34 +56,6 @@ async function getStats() {
   }
 }
 
-function StatCard({
-  label,
-  value,
-  sub,
-  color = 'blue',
-}: {
-  label: string
-  value: string | number
-  sub?: string
-  color?: 'blue' | 'green' | 'purple' | 'amber'
-}) {
-  const colors = {
-    blue: 'bg-blue-50 text-blue-600',
-    green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-    amber: 'bg-amber-50 text-amber-600',
-  }
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-      <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg mb-4 ${colors[color]}`}>
-        <span className="text-lg font-bold">#</span>
-      </div>
-      <div className="text-3xl font-bold text-slate-900">{value}</div>
-      <div className="text-sm font-medium text-slate-600 mt-1">{label}</div>
-      {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
-    </div>
-  )
-}
 
 function formatDateTime(iso: string | null) {
   if (!iso) return '—'
@@ -96,13 +70,13 @@ function formatDateTime(iso: string | null) {
 }
 
 export default async function DashboardPage() {
-  const stats = await getStats()
+  const [stats, session] = await Promise.all([getStats(), getServerSession(authOptions)])
 
   return (
     <div className="p-8 animate-fade-in-up">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Overview</h1>
-        <p className="text-slate-500 text-sm mt-1">Welcome back, Gabriel. Here's what's happening.</p>
+        <p className="text-slate-500 text-sm mt-1">Welcome back, {session?.user?.name?.split(' ')[0] ?? 'back'}. Here's what's happening.</p>
       </div>
 
       {/* Stats grid */}

@@ -5,7 +5,6 @@ import {
   updateClientObjectives,
   createBooking,
 } from '@/lib/supabase'
-import { sendConfirmationEmail } from '@/lib/email'
 
 const VAPI_SECRET = process.env.VAPI_WEBHOOK_SECRET
 
@@ -80,26 +79,16 @@ async function handleTool(
       email,
     })
 
-    // Send confirmation email
-    if (email) {
-      await sendConfirmationEmail({
-        to: email,
-        name: `${firstName} ${lastName}`,
-        dateTime,
-        type: 'booking',
-      })
-    }
-
-    return 'Your zoom meeting has been successfully scheduled. You will be receiving a confirmation email shortly.'
+    return 'Your zoom meeting has been successfully scheduled.'
   }
 
   // ── reschedule_appointment ──────────────────────────────────────────────
   if (name === 'reschedule_appointment') {
-    const { firstName, lastName, email, newDateTime, prevDateTime } = args
+    const { email, newDateTime } = args
 
     const client = await getClientByPhone(phone)
     if (client) {
-      await upsertClient({ ...client, zoom_meeting: newDateTime })
+      await upsertClient({ phone_number: client.phone_number, zoom_meeting: newDateTime })
       await createBooking({
         client_id: client.id,
         booking_type: 'reschedule',
@@ -108,40 +97,21 @@ async function handleTool(
       })
     }
 
-    if (email) {
-      await sendConfirmationEmail({
-        to: email,
-        name: `${firstName} ${lastName}`,
-        dateTime: newDateTime,
-        prevDateTime,
-        type: 'reschedule',
-      })
-    }
-
-    return 'Your appointment has been successfully rescheduled. A confirmation email will be sent shortly.'
+    return 'Your appointment has been successfully rescheduled.'
   }
 
   // ── cancel_appointment ──────────────────────────────────────────────────
   if (name === 'cancel_appointment') {
-    const { firstName, lastName, email, prevDateTime } = args
+    const { email, prevDateTime } = args
 
     const client = await getClientByPhone(phone)
     if (client) {
-      await upsertClient({ ...client, zoom_meeting: '' })
+      await upsertClient({ phone_number: client.phone_number, zoom_meeting: '' })
       await createBooking({
         client_id: client.id,
         booking_type: 'cancel',
         scheduled_at: prevDateTime,
         email,
-      })
-    }
-
-    if (email) {
-      await sendConfirmationEmail({
-        to: email,
-        name: `${firstName} ${lastName}`,
-        dateTime: prevDateTime,
-        type: 'cancellation',
       })
     }
 

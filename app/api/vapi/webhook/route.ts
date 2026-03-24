@@ -70,25 +70,31 @@ export async function POST(req: NextRequest) {
     const recordingUrl: string | null = message?.artifact?.recordingUrl ?? null
     const costDollars: number | null = message?.call?.cost ?? null
     const costCents: number | null = costDollars !== null ? Math.round(costDollars * 100) : null
-    const endedAt = new Date().toISOString()
 
-    // Calculate duration
-    const startedAt = message?.call?.startedAt
-    const durationSeconds = startedAt
-      ? Math.round((Date.now() - new Date(startedAt).getTime()) / 1000)
-      : null
+    // Use VAPI's actual timestamps, not processing time
+    const startedAt: string | undefined = message?.call?.startedAt
+    const endedAt: string = message?.call?.endedAt ?? new Date().toISOString()
+    const durationSeconds =
+      startedAt
+        ? Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000)
+        : null
 
     // Update the call record in Supabase
-    await updateCall(vapiCallId, {
-      ended_at: endedAt,
-      duration_seconds: durationSeconds ?? undefined,
-      ended_reason: endedReason,
-      transcript,
-      summary,
-      success_eval: successEval,
-      recording_url: recordingUrl,
-      cost_cents: costCents,
-    })
+    try {
+      await updateCall(vapiCallId, {
+        ended_at: endedAt,
+        duration_seconds: durationSeconds ?? undefined,
+        ended_reason: endedReason,
+        transcript,
+        summary,
+        success_eval: successEval,
+        recording_url: recordingUrl,
+        cost_cents: costCents,
+      })
+    } catch (err) {
+      console.error('updateCall failed:', err)
+      // Still return 200 so VAPI doesn't retry endlessly
+    }
 
     return NextResponse.json({ received: true })
   }

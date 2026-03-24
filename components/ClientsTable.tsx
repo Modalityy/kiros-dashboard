@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 type Client = {
   id: string
@@ -44,6 +44,12 @@ function EditModal({ client, onClose, onSaved }: { client: Client; onClose: () =
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const handleSave = async () => {
     setSaving(true)
     setError(null)
@@ -64,14 +70,24 @@ function EditModal({ client, onClose, onSaved }: { client: Client; onClose: () =
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-client-title"
+    >
       <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-900">Edit Client</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors">
+          <h2 id="edit-client-title" className="text-base font-semibold text-slate-900">Edit Client</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close edit client"
+            className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -82,10 +98,11 @@ function EditModal({ client, onClose, onSaved }: { client: Client; onClose: () =
           <div className="grid grid-cols-2 gap-3">
             {(['first_name', 'last_name'] as const).map((field) => (
               <div key={field}>
-                <label className="block text-xs font-medium text-slate-500 mb-1 capitalize">
+                <label htmlFor={`edit-${field}`} className="block text-xs font-medium text-slate-500 mb-1 capitalize">
                   {field.replace('_', ' ')}
                 </label>
                 <input
+                  id={`edit-${field}`}
                   type="text"
                   value={form[field]}
                   onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
@@ -97,8 +114,9 @@ function EditModal({ client, onClose, onSaved }: { client: Client; onClose: () =
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Email</label>
+              <label htmlFor="edit-email" className="block text-xs font-medium text-slate-500 mb-1">Email</label>
               <input
+                id="edit-email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
@@ -106,8 +124,9 @@ function EditModal({ client, onClose, onSaved }: { client: Client; onClose: () =
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">DISC Profile</label>
+              <label htmlFor="edit-disc" className="block text-xs font-medium text-slate-500 mb-1">DISC Profile</label>
               <input
+                id="edit-disc"
                 type="text"
                 value={form.disc_profile}
                 onChange={(e) => setForm((f) => ({ ...f, disc_profile: e.target.value }))}
@@ -117,12 +136,14 @@ function EditModal({ client, onClose, onSaved }: { client: Client; onClose: () =
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Objectives</label>
+            <p className="block text-xs font-medium text-slate-500 mb-1">Objectives</p>
             <div className="space-y-2">
               {(['objective_1', 'objective_2', 'objective_3', 'objective_4'] as const).map((field, i) => (
                 <input
                   key={field}
+                  id={`edit-${field}`}
                   type="text"
+                  aria-label={`Objective ${i + 1}`}
                   placeholder={`Objective ${i + 1}`}
                   value={form[field]}
                   onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
@@ -227,16 +248,24 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
                       </p>
                       {!search && (
                         <div className="mt-5 grid grid-cols-2 gap-3 text-xs max-w-xs w-full">
-                          {[
-                            { icon: '🎯', label: 'Objectives', desc: 'Up to 4 financial goals per client' },
-                            { icon: '✏️', label: 'Editable', desc: 'Update details directly from the table' },
-                          ].map((f) => (
-                            <div key={f.label} className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-left">
-                              <div className="text-lg mb-1">{f.icon}</div>
-                              <div className="font-medium text-slate-600">{f.label}</div>
-                              <div className="text-slate-400 mt-0.5">{f.desc}</div>
+                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-left">
+                            <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center mb-2">
+                              <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
                             </div>
-                          ))}
+                            <div className="font-medium text-slate-600">Objectives</div>
+                            <div className="text-slate-400 mt-0.5">Up to 4 financial goals per client</div>
+                          </div>
+                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-left">
+                            <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center mb-2">
+                              <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </div>
+                            <div className="font-medium text-slate-600">Editable</div>
+                            <div className="text-slate-400 mt-0.5">Update details directly from the table</div>
+                          </div>
                         </div>
                       )}
                     </div>
