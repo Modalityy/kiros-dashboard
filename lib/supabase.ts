@@ -136,6 +136,21 @@ export async function createBooking(data: {
   return booking
 }
 
+// ── Settings helpers ───────────────────────────────────────────────────────
+
+export async function getAllSettings(): Promise<Record<string, string>> {
+  const { data } = await supabase.from('settings').select('key, value')
+  return Object.fromEntries((data ?? []).map((r: any) => [r.key, r.value]))
+}
+
+export async function upsertSetting(key: string, value: string): Promise<void> {
+  await supabase
+    .from('settings')
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+}
+
+// ── Booking helpers ────────────────────────────────────────────────────────
+
 export async function getUpcomingBookings(limit = 20): Promise<Booking[]> {
   const { data } = await supabase
     .from('bookings')

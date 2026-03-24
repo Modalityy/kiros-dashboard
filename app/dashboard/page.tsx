@@ -90,7 +90,7 @@ export default async function DashboardPage() {
   const stats = await getStats()
 
   return (
-    <div className="p-8">
+    <div className="p-8 animate-fade-in-up">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Overview</h1>
         <p className="text-slate-500 text-sm mt-1">Welcome back, Gabriel. Here's what's happening.</p>

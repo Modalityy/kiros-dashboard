@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
     })
 
     if (client) {
-      return NextResponse.json(returningCallerConfig(client, systemPromptDates))
+      return NextResponse.json(await returningCallerConfig(client, systemPromptDates))
     } else {
-      return NextResponse.json(newCallerConfig(systemPromptDates))
+      return NextResponse.json(await newCallerConfig(systemPromptDates))
     }
   }
 

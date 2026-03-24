@@ -67,3 +67,10 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER clients_updated_at
   BEFORE UPDATE ON clients
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- Settings (editable config — system prompts, available times, etc.)
+CREATE TABLE IF NOT EXISTS settings (
+  key         TEXT PRIMARY KEY,
+  value       TEXT NOT NULL,
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);

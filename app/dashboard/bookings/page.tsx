@@ -58,7 +58,7 @@ export default async function BookingsPage() {
   const past = bookings.filter((b: any) => b.booking_type === 'cancel' || new Date(b.scheduled_at) <= new Date())
 
   return (
-    <div className="p-8">
+    <div className="p-8 animate-fade-in-up">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Bookings</h1>
         <p className="text-slate-500 text-sm mt-1">{upcoming.length} upcoming · {past.length} past/cancelled</p>

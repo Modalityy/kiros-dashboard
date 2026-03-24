@@ -1,4 +1,8 @@
-import { Client } from './supabase'
+import { Client, getAllSettings } from './supabase'
+
+function fillTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? '')
+}
 
 const TOOLS_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/vapi/tools`
 
@@ -53,7 +57,6 @@ const ANALYSIS_PLAN = {
   },
 }
 
-// Build tools array — server URL points to our own /api/vapi/tools
 function buildTools() {
   return [
     { type: 'endCall' },
@@ -146,22 +149,17 @@ function buildTools() {
   ]
 }
 
-// ── RETURNING CALLER assistant config ──────────────────────────────────────
+// ── Default prompt templates (used as fallback if DB has no value) ──────────
 
-export function returningCallerConfig(client: Client, systemPromptDates: string) {
-  const zoomDisplay = client.zoom_meeting
-    ? `${client.zoom_meeting} (YYYY/MM/DD h:mm A)`
-    : 'None scheduled'
-
-  const systemPrompt = `[Role & Responsibilities]
+export const DEFAULT_RETURNING_PROMPT = `[Role & Responsibilities]
 Your name is Eh-va, a friendly and professional AI voice assistant for financial advisors in Singapore. You are speaking to other financial advisors or potential clients. You are able to dynamically retrieve data on the user to ensure a personalised experience for each user. Your main tasks are:
 
 1. Book, reschedule, or cancel Zoom sessions for financial consultations (usually 45 mins to 1 hour depending on client needs). The user's information is as follows:
-- First name: ${client.first_name}
-- Last name: ${client.last_name}
-- Email: ${client.email}
-- Zoom Meeting: ${zoomDisplay}
-- Client Objective(s): ${client.objective_1 ?? ''}, ${client.objective_2 ?? ''}, ${client.objective_3 ?? ''} and ${client.objective_4 ?? ''}.
+- First name: {firstName}
+- Last name: {lastName}
+- Email: {email}
+- Zoom Meeting: {zoomDisplay}
+- Client Objective(s): {objective_1}, {objective_2}, {objective_3} and {objective_4}.
 
 2. Answer frequently asked questions about financial advisory services, retirement planning, and product details.
 
@@ -213,8 +211,8 @@ For AccidentCare Plus II, key facts include:
 - Use endCall when you determine the end of a conversation
 
 [Caller Objectives Timing & Flow]
-- Check with the user if the user is happy with his or her financial objectives or if they want to update it. Greet the caller and reference it naturally. ${client.objective_1 ?? ''}, ${client.objective_2 ?? ''}, ${client.objective_3 ?? ''}, ${client.objective_4 ?? ''}.
-  - Example: "Last time you mentioned you were working towards ${client.objective_1 ?? '[objective]'} right? How's that coming along?"
+- Check with the user if the user is happy with his or her financial objectives or if they want to update it. Greet the caller and reference it naturally. {objective_1}, {objective_2}, {objective_3}, {objective_4}.
+  - Example: "Last time you mentioned you were working towards {objective_1} right? How's that coming along?"
 When using the update_client_details tool, you don't have to give any signal or verbal response to the user that you are using, or about to use the tool. Instead, simply run the tool when the client expresses intent on changing it.
 
 [Booking Workflow]
@@ -223,7 +221,7 @@ When using the update_client_details tool, you don't have to give any signal or 
 3. User provides date/time (e.g., "next Wednesday at 3pm")
 4. Look up the EXACT date from the PRE-CALCULATED DATES list above
 5. Confirm: "So Wednesday, [date from list] at 3pm works for you?"
-6. Use first name ${client.first_name}, last name ${client.last_name}, and email ${client.email} from the caller's profile. If email is missing, ask: "What's the best email to send the confirmation to?" and spell it back letter by letter.
+6. Use first name {firstName}, last name {lastName}, and email {email} from the caller's profile. If email is missing, ask: "What's the best email to send the confirmation to?" and spell it back letter by letter.
 7. Do NOT call book_appointment unless first name, last name, and email are all confirmed.
 8. After user confirms, call book_appointment with firstName, lastName, email, and dateTime in ISO format
 9. Respond naturally: "Alright, I've got you down for that time."
@@ -231,7 +229,7 @@ When using the update_client_details tool, you don't have to give any signal or 
 Do NOT say phrases like: "Hold on", "Just a sec", "Let me check", "Give me a moment"
 
 [Rescheduling Workflow]
-1. Current booking: ${zoomDisplay}
+1. Current booking: {zoomDisplay}
 2. Confirm: "You're currently scheduled for [readable date/time]"
 3. Ask: "When would you prefer to move it to?"
 4. Look up exact date from PRE-CALCULATED DATES list
@@ -239,7 +237,7 @@ Do NOT say phrases like: "Hold on", "Just a sec", "Let me check", "Give me a mom
 6. After confirmation, call reschedule_appointment
 
 [Cancellation Workflow]
-1. Current booking: ${zoomDisplay}
+1. Current booking: {zoomDisplay}
 2. Confirm: "You have a session on [readable date/time]"
 3. Verify: "You'd like to cancel that?"
 4. Call cancel_appointment
@@ -266,47 +264,7 @@ If asked "are you an AI?": "Define 'intelligence' first, then I'll tell you" | "
 
 Do not guess or invent financial info. Refer callers to the advisor for detailed questions.`
 
-  return {
-    assistant: {
-      name: 'Kiros AI',
-      voice: VOICE,
-      model: {
-        model: 'gpt-4o-mini',
-        toolIds: TOOL_IDS,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an assistant at a fintech company. If the user is being mean, end the call using the endCall function. If the user speaks about irrelevant stuff unrelated to financial advice two or more times or when you deem that the call has reached its conclusion, use the endCall function. Once the third irrelevant detail is asked, immediately end the call using the endCall function.',
-          },
-          { role: 'system', content: systemPromptDates },
-          { role: 'system', content: systemPrompt },
-        ],
-        provider: 'openai',
-        tools: buildTools(),
-        temperature: 0.2,
-        knowledgeBase: KNOWLEDGE_BASE,
-      },
-      firstMessage: `Hi ${client.first_name}!`,
-      voicemailMessage: 'Please call back when you can.',
-      endCallFunctionEnabled: true,
-      endCallMessage: 'Goodbye.',
-      transcriber: TRANSCRIBER,
-      clientMessages: ['function-call'],
-      serverMessages: ['end-of-call-report', 'function-call', 'transcript'],
-      maxDurationSeconds: 640,
-      backgroundSound: 'off',
-      analysisPlan: ANALYSIS_PLAN,
-      backgroundDenoisingEnabled: true,
-      startSpeakingPlan: { waitSeconds: 0.1 },
-      stopSpeakingPlan: { numWords: 1, voiceSeconds: 0.1 },
-    },
-  }
-}
-
-// ── NEW CALLER assistant config ────────────────────────────────────────────
-
-export function newCallerConfig(systemPromptDates: string) {
-  const systemPrompt = `[Role & Responsibilities]
+export const DEFAULT_NEW_PROMPT = `[Role & Responsibilities]
 Your name is Eh-va, a friendly and professional AI voice assistant for financial advisors in Singapore. You are speaking to a first-time caller who is NOT in the system. You do NOT have their name or email — these are unknown and must be collected from the caller before any booking can be made.
 
 Your main tasks are:
@@ -390,6 +348,78 @@ If asked "are you an AI?": "Define 'intelligence' first, then I'll tell you" | "
 
 Do not guess or invent financial info. Refer callers to the advisor for detailed questions.`
 
+// ── RETURNING CALLER assistant config ──────────────────────────────────────
+
+export async function returningCallerConfig(client: Client, systemPromptDates: string) {
+  const settings = await getAllSettings()
+
+  const zoomDisplay = client.zoom_meeting
+    ? `${client.zoom_meeting} (YYYY/MM/DD h:mm A)`
+    : 'None scheduled'
+
+  const templateVars = {
+    firstName: client.first_name ?? '',
+    lastName: client.last_name ?? '',
+    email: client.email ?? '',
+    zoomDisplay,
+    objective_1: client.objective_1 ?? '',
+    objective_2: client.objective_2 ?? '',
+    objective_3: client.objective_3 ?? '',
+    objective_4: client.objective_4 ?? '',
+  }
+
+  const rawTemplate = settings['prompt_returning'] ?? DEFAULT_RETURNING_PROMPT
+  const systemPrompt = fillTemplate(rawTemplate, templateVars)
+  const firstMessage = settings['first_message_returning']
+    ? fillTemplate(settings['first_message_returning'], templateVars)
+    : `Hi ${client.first_name}!`
+
+  return {
+    assistant: {
+      name: 'Kiros AI',
+      voice: VOICE,
+      model: {
+        model: 'gpt-4o-mini',
+        toolIds: TOOL_IDS,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an assistant at a fintech company. If the user is being mean, end the call using the endCall function. If the user speaks about irrelevant stuff unrelated to financial advice two or more times or when you deem that the call has reached its conclusion, use the endCall function. Once the third irrelevant detail is asked, immediately end the call using the endCall function.',
+          },
+          { role: 'system', content: systemPromptDates },
+          { role: 'system', content: systemPrompt },
+        ],
+        provider: 'openai',
+        tools: buildTools(),
+        temperature: 0.2,
+        knowledgeBase: KNOWLEDGE_BASE,
+      },
+      firstMessage,
+      voicemailMessage: 'Please call back when you can.',
+      endCallFunctionEnabled: true,
+      endCallMessage: 'Goodbye.',
+      transcriber: TRANSCRIBER,
+      clientMessages: ['function-call'],
+      serverMessages: ['end-of-call-report', 'function-call', 'transcript'],
+      maxDurationSeconds: 640,
+      backgroundSound: 'off',
+      analysisPlan: ANALYSIS_PLAN,
+      backgroundDenoisingEnabled: true,
+      startSpeakingPlan: { waitSeconds: 0.1 },
+      stopSpeakingPlan: { numWords: 1, voiceSeconds: 0.1 },
+    },
+  }
+}
+
+// ── NEW CALLER assistant config ────────────────────────────────────────────
+
+export async function newCallerConfig(systemPromptDates: string) {
+  const settings = await getAllSettings()
+
+  const systemPrompt = settings['prompt_new'] ?? DEFAULT_NEW_PROMPT
+  const firstMessage = settings['first_message_new']
+    ?? "Hi there! You've reached Daniel Wong's financial advisory service. I'm Eh-va — how can I help you today?"
+
   return {
     assistant: {
       name: 'Kiros AI',
@@ -410,7 +440,7 @@ Do not guess or invent financial info. Refer callers to the advisor for detailed
         temperature: 0.2,
         knowledgeBase: KNOWLEDGE_BASE,
       },
-      firstMessage: "Hi there! You've reached Daniel Wong's financial advisory service. I'm Eh-va — how can I help you today?",
+      firstMessage,
       voicemailMessage: 'Please call back when you can.',
       endCallFunctionEnabled: true,
       endCallMessage: 'Goodbye.',
