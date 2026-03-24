@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS calls (
   transcript        TEXT,
   summary           TEXT,
   success_eval      TEXT,
+  recording_url     TEXT,
+  cost_cents        INTEGER,
   created_at        TIMESTAMPTZ DEFAULT NOW()
 );
 

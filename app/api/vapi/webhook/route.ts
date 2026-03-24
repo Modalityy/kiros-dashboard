@@ -63,11 +63,13 @@ export async function POST(req: NextRequest) {
   // VAPI sends transcript, summary, success eval after call ends
   if (message?.type === 'end-of-call-report') {
     const vapiCallId: string = message?.call?.id ?? ''
-    const phone: string = message?.call?.customer?.number ?? ''
     const transcript: string = message?.transcript ?? ''
     const summary: string = message?.summary ?? ''
     const successEval: string = message?.analysis?.successEvaluation ?? ''
     const endedReason: string = message?.endedReason ?? ''
+    const recordingUrl: string | null = message?.artifact?.recordingUrl ?? null
+    const costDollars: number | null = message?.call?.cost ?? null
+    const costCents: number | null = costDollars !== null ? Math.round(costDollars * 100) : null
     const endedAt = new Date().toISOString()
 
     // Calculate duration
@@ -84,6 +86,8 @@ export async function POST(req: NextRequest) {
       transcript,
       summary,
       success_eval: successEval,
+      recording_url: recordingUrl,
+      cost_cents: costCents,
     })
 
     return NextResponse.json({ received: true })

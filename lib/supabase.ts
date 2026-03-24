@@ -38,6 +38,8 @@ export type Call = {
   transcript: string | null
   summary: string | null
   success_eval: string | null
+  recording_url: string | null
+  cost_cents: number | null
   created_at: string
   clients?: Client
 }
@@ -144,9 +146,10 @@ export async function getAllSettings(): Promise<Record<string, string>> {
 }
 
 export async function upsertSetting(key: string, value: string): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from('settings')
     .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+  if (error) throw error
 }
 
 // ── Booking helpers ────────────────────────────────────────────────────────

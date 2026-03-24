@@ -20,6 +20,11 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Missing key or value' }, { status: 400 })
   }
 
-  await upsertSetting(key, value)
-  return NextResponse.json({ ok: true })
+  try {
+    await upsertSetting(key, value)
+    return NextResponse.json({ ok: true })
+  } catch (err: any) {
+    console.error('upsertSetting error:', err)
+    return NextResponse.json({ error: err?.message ?? 'Failed to save' }, { status: 500 })
+  }
 }

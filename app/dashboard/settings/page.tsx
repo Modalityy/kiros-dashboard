@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { DEFAULT_RETURNING_PROMPT, DEFAULT_NEW_PROMPT } from '@/lib/default-prompts'
 
 type SettingKey = 'prompt_returning' | 'prompt_new' | 'first_message_new' | 'first_message_returning'
@@ -38,9 +38,10 @@ const SECTIONS: { key: SettingKey; label: string; description: string; rows: num
 
 export default function SettingsPage() {
   const [values, setValues] = useState<Record<string, string>>({})
-  const [saving, setSaving] = useState<Record<string, boolean>>({})
-  const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -54,20 +55,31 @@ export default function SettingsPage() {
   const getValue = (key: SettingKey, defaultValue: string) =>
     values[key] !== undefined ? values[key] : defaultValue
 
-  const handleSave = useCallback(async (key: SettingKey) => {
-    setSaving(s => ({ ...s, [key]: true }))
-    await fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, value: getValue(key, '') }),
-    })
-    setSaving(s => ({ ...s, [key]: false }))
-    setSaved(s => ({ ...s, [key]: true }))
-    setTimeout(() => setSaved(s => ({ ...s, [key]: false })), 2500)
-  }, [values])
-
-  const handleReset = (key: SettingKey, defaultValue: string) => {
-    setValues(v => ({ ...v, [key]: defaultValue }))
+  const handleSaveAll = async () => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const results = await Promise.all(
+        SECTIONS.map(({ key, defaultValue }) =>
+          fetch('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, value: getValue(key, defaultValue) }),
+          }).then(r => r.json())
+        )
+      )
+      const failed = results.find((r: any) => r.error)
+      if (failed) {
+        setSaveError(failed.error)
+      } else {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      }
+    } catch {
+      setSaveError('Network error — changes not saved.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -75,7 +87,7 @@ export default function SettingsPage() {
       <div className="p-8 flex items-center justify-center min-h-[400px]">
         <div className="flex items-center gap-3 text-slate-400">
           <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
-          Loading settings…
+          Loading…
         </div>
       </div>
     )
@@ -84,7 +96,7 @@ export default function SettingsPage() {
   return (
     <div className="p-8 animate-fade-in-up">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Assistant Settings</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Assistant</h1>
         <p className="text-slate-500 text-sm mt-1">
           Edit Eh-va's system prompts and messages. Changes take effect on the next call.
         </p>
@@ -92,7 +104,7 @@ export default function SettingsPage() {
 
       {/* Placeholder reference */}
       <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4 mb-8">
-        <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Available Placeholders (Returning Caller Prompt)</p>
+        <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Available Placeholders</p>
         <div className="flex flex-wrap gap-2">
           {['{firstName}', '{lastName}', '{email}', '{zoomDisplay}', '{objective_1}', '{objective_2}', '{objective_3}', '{objective_4}'].map(p => (
             <code key={p} className="text-xs bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded font-mono">{p}</code>
@@ -100,7 +112,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {SECTIONS.map(({ key, label, description, rows, defaultValue }) => (
           <div key={key} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
@@ -108,25 +120,12 @@ export default function SettingsPage() {
                 <h2 className="text-sm font-semibold text-slate-900">{label}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{description}</p>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  onClick={() => handleReset(key, defaultValue)}
-                  className="text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100"
-                >
-                  Reset to default
-                </button>
-                <button
-                  onClick={() => handleSave(key)}
-                  disabled={saving[key]}
-                  className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-all ${
-                    saved[key]
-                      ? 'bg-green-500 text-white'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60'
-                  }`}
-                >
-                  {saving[key] ? 'Saving…' : saved[key] ? 'Saved ✓' : 'Save'}
-                </button>
-              </div>
+              <button
+                onClick={() => setValues(v => ({ ...v, [key]: defaultValue }))}
+                className="text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100 flex-shrink-0"
+              >
+                Reset
+              </button>
             </div>
             <div className="p-4">
               <textarea
@@ -139,6 +138,32 @@ export default function SettingsPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Single save button */}
+      <div className="mt-8 flex items-center justify-end gap-4">
+        {saveError && (
+          <span className="text-sm text-red-600 font-medium">
+            {saveError}
+          </span>
+        )}
+        {saved && (
+          <span className="text-sm text-green-600 font-medium animate-fade-in-up">
+            Changes saved successfully ✓
+          </span>
+        )}
+        <button
+          onClick={handleSaveAll}
+          disabled={saving}
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl transition-all shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {saving ? (
+            <span className="flex items-center gap-2">
+              <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              Saving…
+            </span>
+          ) : 'Save Changes'}
+        </button>
       </div>
     </div>
   )

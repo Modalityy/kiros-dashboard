@@ -14,6 +14,7 @@ type Call = {
   transcript: string | null
   summary: string | null
   success_eval: string | null
+  recording_url: string | null
   clients: {
     id: string
     first_name: string | null
@@ -146,7 +147,7 @@ export function CallsTable({ calls }: { calls: Call[] }) {
                   'First Name', 'Last Name', 'Number', 'Type',
                   'DISC', 'Zoom Meeting', 'Email',
                   'Objective 1', 'Objective 2', 'Objective 3', 'Objective 4',
-                  'Duration', 'Success', 'Transcript', 'Date',
+                  'Duration', 'Success', 'Transcript', 'Recording', 'Date',
                 ].map((col) => (
                   <th
                     key={col}
@@ -160,7 +161,7 @@ export function CallsTable({ calls }: { calls: Call[] }) {
             <tbody className="divide-y divide-slate-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={15} className="px-4 py-10 text-center text-slate-400 text-sm">
+                  <td colSpan={16} className="px-4 py-10 text-center text-slate-400 text-sm">
                     No calls found.
                   </td>
                 </tr>
@@ -224,6 +225,20 @@ export function CallsTable({ calls }: { calls: Call[] }) {
                         >
                           View
                         </button>
+                      ) : (
+                        <span className="text-slate-300 text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {call.recording_url ? (
+                        <a
+                          href={call.recording_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2"
+                        >
+                          Play
+                        </a>
                       ) : (
                         <span className="text-slate-300 text-xs">—</span>
                       )}
