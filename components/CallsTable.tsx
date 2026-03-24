@@ -71,6 +71,78 @@ function CallerTypeBadge({ type }: { type: string }) {
   )
 }
 
+function RecordingModal({ url, callerName, duration, onClose }: {
+  url: string
+  callerName: string
+  duration: number | null
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="recording-modal-title"
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div>
+            <h2 id="recording-modal-title" className="text-base font-semibold text-slate-900">Call Recording</h2>
+            <p className="text-xs text-slate-400 mt-0.5">{callerName}{duration ? ` · ${formatDuration(duration)}` : ''}</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close recording"
+            className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-6 py-6 space-y-4">
+          {/* Audio player */}
+          <audio
+            controls
+            autoPlay={false}
+            className="w-full rounded-lg"
+            src={url}
+          >
+            Your browser does not support the audio element.
+          </audio>
+
+          {/* Download link */}
+          <div className="flex justify-end">
+            <a
+              href={url}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download recording
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TranscriptModal({ transcript, summary, onClose }: { transcript: string; summary: string | null; onClose: () => void }) {
   const [copied, setCopied] = useState(false)
 
@@ -196,6 +268,7 @@ export function CallsTable({ calls }: { calls: Call[] }) {
   const [sortKey, setSortKey] = useState<SortKey>('started_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [selectedTranscript, setSelectedTranscript] = useState<{ transcript: string; summary: string | null } | null>(null)
+  const [selectedRecording, setSelectedRecording] = useState<{ url: string; callerName: string; duration: number | null } | null>(null)
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -238,6 +311,14 @@ export function CallsTable({ calls }: { calls: Call[] }) {
           transcript={selectedTranscript.transcript}
           summary={selectedTranscript.summary}
           onClose={() => setSelectedTranscript(null)}
+        />
+      )}
+      {selectedRecording && (
+        <RecordingModal
+          url={selectedRecording.url}
+          callerName={selectedRecording.callerName}
+          duration={selectedRecording.duration}
+          onClose={() => setSelectedRecording(null)}
         />
       )}
 
@@ -402,14 +483,16 @@ export function CallsTable({ calls }: { calls: Call[] }) {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {call.recording_url ? (
-                        <a
-                          href={call.recording_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => setSelectedRecording({
+                            url: call.recording_url!,
+                            callerName: [call.clients?.first_name, call.clients?.last_name].filter(Boolean).join(' ') || call.phone_number,
+                            duration: call.duration_seconds,
+                          })}
                           className="text-xs text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2"
                         >
                           Play
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-slate-300 text-xs">—</span>
                       )}
