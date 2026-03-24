@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { DEFAULT_RETURNING_PROMPT, DEFAULT_NEW_PROMPT } from '@/lib/vapi-config'
+import { DEFAULT_RETURNING_PROMPT, DEFAULT_NEW_PROMPT } from '@/lib/default-prompts'
 
 type SettingKey = 'prompt_returning' | 'prompt_new' | 'first_message_new' | 'first_message_returning'
 
