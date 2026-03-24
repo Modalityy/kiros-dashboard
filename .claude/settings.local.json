@@ -17,7 +17,12 @@
       "Bash(curl -s http://localhost:3000/api/auth/providers 2>&1)",
       "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm uninstall googleapis 2>&1)",
       "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm audit 2>&1)",
-      "Bash(cmd /c \"taskkill /F /IM node.exe\" 2>&1 && sleep 2 && echo \"killed\")"
+      "Bash(cmd /c \"taskkill /F /IM node.exe\" 2>&1 && sleep 2 && echo \"killed\")",
+      "Bash(sleep 4 && cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm run dev 2>&1)",
+      "Bash(cmd /c \"for /f \\\\\"tokens=5\\\\\" %a in \\('netstat -aon ^| findstr :3000'\\) do taskkill /F /PID %a\" 2>&1 && cmd /c \"for /f \\\\\"tokens=5\\\\\" %a in \\('netstat -aon ^| findstr :3001'\\) do taskkill /F /PID %a\" 2>&1)",
+      "Bash(cmd /c \"netstat -aon | findstr :300\")",
+      "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm run dev 2>&1)",
+      "Bash(cmd /c \"netstat -aon | findstr LISTENING | findstr \\\\\":300\\\\\"\")"
     ]
   }
 }
