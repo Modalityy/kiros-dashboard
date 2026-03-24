@@ -1,20 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
-async function autoCompleteBookings(supabase: ReturnType<typeof createClient>) {
-  await supabase
-    .from('bookings')
-    .update({ status: 'completed' })
-    .eq('status', 'active')
-    .lt('scheduled_at', new Date().toISOString())
-}
-
 async function getBookings() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  await autoCompleteBookings(supabase)
+  // Mark past active bookings as completed
+  await supabase
+    .from('bookings')
+    .update({ status: 'completed' } as any)
+    .eq('status', 'active')
+    .lt('scheduled_at', new Date().toISOString())
 
   const { data, error } = await supabase
     .from('bookings')
