@@ -124,7 +124,7 @@ export default function SettingsPage() {
                 onClick={() => setValues(v => ({ ...v, [key]: defaultValue }))}
                 className="text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100 flex-shrink-0"
               >
-                Reset
+                Reset to Default
               </button>
             </div>
             <div className="p-4">
