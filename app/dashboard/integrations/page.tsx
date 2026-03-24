@@ -1,42 +1,135 @@
-function mask(value: string | undefined, visibleChars = 6): string {
-  if (!value) return '—'
-  if (value.length <= visibleChars) return '••••••••'
-  return value.slice(0, visibleChars) + '••••••••'
+'use client'
+
+import { useState, useEffect } from 'react'
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+type EnvStatus = {
+  vapiSecretSet: boolean
+  vapiWebhookUrl: string | null
+  supabaseUrl: string | null
+  supabaseKeySet: boolean
+  googleOAuthSet: boolean
+  allowedEmail: string | null
+  callbackUrl: string | null
+  sheetsIdSet: boolean
+  serviceAccountSet: boolean
 }
 
-function isConfigured(value: string | undefined, placeholder?: string): boolean {
-  if (!value) return false
-  if (placeholder && value.startsWith(placeholder)) return false
-  return true
-}
+type Settings = Record<string, string>
 
-function StatusBadge({ ok }: { ok: boolean }) {
+type BadgeVariant = 'connected' | 'not_configured' | 'via_vapi'
+
+// ── Small components ───────────────────────────────────────────────────────
+
+function StatusBadge({ variant }: { variant: BadgeVariant }) {
+  if (variant === 'connected') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-green-50 text-green-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+        Connected
+      </span>
+    )
+  }
+  if (variant === 'via_vapi') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-violet-50 text-violet-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+        Via VAPI
+      </span>
+    )
+  }
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
-      ok ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
-    }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-green-500' : 'bg-slate-400'}`} />
-      {ok ? 'Connected' : 'Not configured'}
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+      Not configured
     </span>
   )
 }
+
+function ReadOnlyRow({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
+  const display = value ?? <span className="text-slate-300 italic">not set</span>
+  return (
+    <div className="px-6 py-3 flex items-center justify-between gap-4 bg-slate-50/50">
+      <span className="text-xs text-slate-400 flex-shrink-0">{label}</span>
+      <span className={`text-xs text-right truncate max-w-xs ${mono ? 'font-mono text-slate-600' : 'text-slate-500'}`}>
+        {display}
+      </span>
+    </div>
+  )
+}
+
+function EditableKeyRow({
+  label,
+  settingKey,
+  placeholder,
+  value,
+  onChange,
+  onSave,
+  saving,
+  saved,
+}: {
+  label: string
+  settingKey: string
+  placeholder?: string
+  value: string
+  onChange: (key: string, val: string) => void
+  onSave: (key: string) => void
+  saving: boolean
+  saved: boolean
+}) {
+  return (
+    <div className="px-6 py-3 flex items-center gap-3 border-t border-slate-100">
+      <span className="text-xs text-slate-500 flex-shrink-0 w-32">{label}</span>
+      <input
+        type="password"
+        autoComplete="off"
+        value={value}
+        placeholder={placeholder ?? 'Paste API key…'}
+        onChange={(e) => onChange(settingKey, e.target.value)}
+        className="flex-1 min-w-0 text-xs font-mono border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+      />
+      <button
+        onClick={() => onSave(settingKey)}
+        disabled={saving}
+        className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
+      >
+        {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save'}
+      </button>
+    </div>
+  )
+}
+
+// ── Card ──────────────────────────────────────────────────────────────────
 
 function IntegrationCard({
   icon,
   name,
   description,
-  status,
-  fields,
-  docsUrl,
+  badge,
   accentColor,
+  docsUrl,
+  readOnlyRows,
+  editableRows,
+  settings,
+  onSettingChange,
+  onSettingSave,
+  savingKey,
+  savedKey,
 }: {
   icon: React.ReactNode
   name: string
   description: string
-  status: boolean
-  fields: { label: string; value: string | undefined; masked?: boolean; mono?: boolean }[]
-  docsUrl?: string
+  badge: BadgeVariant
   accentColor: string
+  docsUrl?: string
+  readOnlyRows: { label: string; value: string | null | undefined; mono?: boolean }[]
+  editableRows: { label: string; settingKey: string; placeholder?: string }[]
+  settings: Settings
+  onSettingChange: (key: string, val: string) => void
+  onSettingSave: (key: string) => void
+  savingKey: string | null
+  savedKey: string | null
 }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -48,7 +141,7 @@ function IntegrationCard({
           <div>
             <div className="flex items-center gap-2.5">
               <h2 className="text-sm font-semibold text-slate-900">{name}</h2>
-              <StatusBadge ok={status} />
+              <StatusBadge variant={badge} />
             </div>
             <p className="text-xs text-slate-400 mt-0.5">{description}</p>
           </div>
@@ -69,39 +162,100 @@ function IntegrationCard({
       </div>
 
       <div className="border-t border-slate-100 divide-y divide-slate-50">
-        {fields.map((field) => (
-          <div key={field.label} className="px-6 py-3 flex items-center justify-between gap-4">
-            <span className="text-xs text-slate-500 flex-shrink-0">{field.label}</span>
-            <span className={`text-xs text-right truncate max-w-xs ${field.mono ? 'font-mono text-slate-700' : 'text-slate-600'}`}>
-              {field.value
-                ? field.masked
-                  ? mask(field.value)
-                  : field.value
-                : <span className="text-slate-300 italic">not set</span>
-              }
-            </span>
-          </div>
+        {readOnlyRows.map((row) => (
+          <ReadOnlyRow key={row.label} label={row.label} value={row.value} mono={row.mono} />
         ))}
       </div>
+
+      {editableRows.length > 0 && (
+        <div className="border-t border-slate-200 bg-slate-50/30">
+          <div className="px-6 pt-3 pb-1">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">API Keys</p>
+          </div>
+          {editableRows.map((row) => (
+            <EditableKeyRow
+              key={row.settingKey}
+              label={row.label}
+              settingKey={row.settingKey}
+              placeholder={row.placeholder}
+              value={settings[row.settingKey] ?? ''}
+              onChange={onSettingChange}
+              onSave={onSettingSave}
+              saving={savingKey === row.settingKey}
+              saved={savedKey === row.settingKey}
+            />
+          ))}
+          <div className="h-3" />
+        </div>
+      )}
     </div>
   )
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────
+
 export default function IntegrationsPage() {
-  const vapiSecret = process.env.VAPI_WEBHOOK_SECRET
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const googleClientId = process.env.GOOGLE_CLIENT_ID
-  const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-  const allowedEmail = process.env.ALLOWED_EMAIL
+  const [env, setEnv] = useState<EnvStatus | null>(null)
+  const [settings, setSettings] = useState<Settings>({})
+  const [loading, setLoading] = useState(true)
+  const [savingKey, setSavingKey] = useState<string | null>(null)
+  const [savedKey, setSavedKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/env-check').then((r) => r.json()),
+      fetch('/api/settings').then((r) => r.json()),
+    ]).then(([envData, settingsData]) => {
+      setEnv(envData)
+      setSettings(settingsData)
+      setLoading(false)
+    })
+  }, [])
+
+  const handleChange = (key: string, val: string) => {
+    setSettings((s) => ({ ...s, [key]: val }))
+  }
+
+  const handleSave = async (key: string) => {
+    setSavingKey(key)
+    try {
+      await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value: settings[key] ?? '' }),
+      })
+      setSavedKey(key)
+      setTimeout(() => setSavedKey(null), 2500)
+    } finally {
+      setSavingKey(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-3 text-slate-400">
+          <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
+          Loading…
+        </div>
+      </div>
+    )
+  }
+
+  const e = env!
+
+  // Helpers to derive badge from env status or stored key
+  const hasSetting = (key: string) => !!settings[key]
+
+  const cardProps = { settings, onSettingChange: handleChange, onSettingSave: handleSave, savingKey, savedKey }
 
   return (
     <div className="p-8 animate-fade-in-up">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Integrations</h1>
         <p className="text-slate-500 text-sm mt-1">
-          External services connected to your Kiros system. Edit values in your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono">.env.local</code> file or Vercel environment variables.
+          API keys entered here are stored in your Supabase settings table.
+          Environment variables (Vercel) are read-only and shown for reference.
         </p>
       </div>
 
@@ -109,6 +263,7 @@ export default function IntegrationsPage() {
 
         {/* VAPI */}
         <IntegrationCard
+          {...cardProps}
           icon={
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -116,21 +271,25 @@ export default function IntegrationsPage() {
           }
           name="VAPI"
           description="AI voice infrastructure — handles inbound calls, assistant routing, and tool execution."
-          status={isConfigured(vapiSecret)}
+          badge={e.vapiSecretSet ? 'connected' : 'not_configured'}
           accentColor="bg-violet-600"
           docsUrl="https://docs.vapi.ai"
-          fields={[
-            { label: 'Webhook URL', value: baseUrl ? `${baseUrl}/api/vapi/webhook` : undefined, mono: true },
-            { label: 'Webhook Secret', value: vapiSecret, masked: true, mono: true },
+          readOnlyRows={[
+            { label: 'Webhook URL', value: e.vapiWebhookUrl, mono: true },
+            { label: 'Webhook Secret', value: e.vapiSecretSet ? '••••••••••••' : null, mono: true },
             { label: 'Phone Number', value: '+65 3138 2621' },
             { label: 'Voice', value: 'ElevenLabs · eleven_multilingual_v2' },
             { label: 'Transcriber', value: 'Deepgram · nova-3' },
             { label: 'LLM', value: 'OpenAI · gpt-4o-mini' },
           ]}
+          editableRows={[
+            { label: 'API Key', settingKey: 'vapi_api_key', placeholder: 'vapi_••••••••' },
+          ]}
         />
 
         {/* Supabase */}
         <IntegrationCard
+          {...cardProps}
           icon={
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7zm0 5h16" />
@@ -138,96 +297,132 @@ export default function IntegrationsPage() {
           }
           name="Supabase"
           description="Primary database — stores clients, calls, bookings, and assistant settings."
-          status={isConfigured(supabaseUrl) && isConfigured(supabaseKey)}
+          badge={e.supabaseUrl && e.supabaseKeySet ? 'connected' : 'not_configured'}
           accentColor="bg-emerald-600"
           docsUrl="https://supabase.com/dashboard"
-          fields={[
-            { label: 'Project URL', value: supabaseUrl, mono: true },
-            { label: 'Service Role Key', value: supabaseKey, masked: true, mono: true },
+          readOnlyRows={[
+            { label: 'Project URL', value: e.supabaseUrl, mono: true },
+            { label: 'Service Role Key', value: e.supabaseKeySet ? '••••••••••••' : null, mono: true },
             { label: 'Tables', value: 'clients · calls · bookings · settings' },
           ]}
+          editableRows={[]}
+        />
+
+        {/* Google Sheets */}
+        <IntegrationCard
+          {...cardProps}
+          icon={
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+          }
+          name="Google Sheets"
+          description="Customer data mirror — call records and client updates are synced to the Customer Database sheet."
+          badge={e.sheetsIdSet && e.serviceAccountSet ? 'connected' : 'not_configured'}
+          accentColor="bg-green-600"
+          docsUrl="https://docs.google.com/spreadsheets"
+          readOnlyRows={[
+            { label: 'Sheets ID', value: e.sheetsIdSet ? '••••••••••••' : null, mono: true },
+            { label: 'Service Account', value: e.serviceAccountSet ? 'Configured' : null },
+            { label: 'Columns', value: 'A–L: Name, Phone, DISC, Zoom, Email, Objectives, Transcript, Report' },
+          ]}
+          editableRows={[]}
         />
 
         {/* Twilio */}
         <IntegrationCard
+          {...cardProps}
           icon={
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           }
           name="Twilio"
-          description="Phone number carrier — routes +65 3138 2621 inbound calls to VAPI."
-          status={true}
+          description="Phone number carrier — routes +65 3138 2621 inbound calls to VAPI. WhatsApp messaging planned."
+          badge={hasSetting('twilio_account_sid') && hasSetting('twilio_auth_token') ? 'connected' : 'not_configured'}
           accentColor="bg-red-500"
           docsUrl="https://console.twilio.com"
-          fields={[
+          readOnlyRows={[
             { label: 'Phone Number', value: '+65 3138 2621', mono: true },
             { label: 'Routing', value: 'Inbound → VAPI SIP' },
-            { label: 'WhatsApp', value: 'Planned — not yet configured' },
+            { label: 'WhatsApp', value: 'Planned — not yet active' },
+          ]}
+          editableRows={[
+            { label: 'Account SID', settingKey: 'twilio_account_sid', placeholder: 'ACxxxxxxxxxxxxxxxx' },
+            { label: 'Auth Token', settingKey: 'twilio_auth_token', placeholder: 'Auth token…' },
           ]}
         />
 
         {/* ElevenLabs */}
         <IntegrationCard
+          {...cardProps}
           icon={
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
           }
           name="ElevenLabs"
-          description="AI voice synthesis — provides Eh-va's voice during calls via VAPI."
-          status={true}
+          description="AI voice synthesis — provides Eh-va's voice during calls. Managed through VAPI."
+          badge={hasSetting('elevenlabs_api_key') ? 'connected' : 'via_vapi'}
           accentColor="bg-yellow-500"
           docsUrl="https://elevenlabs.io/app"
-          fields={[
+          readOnlyRows={[
             { label: 'Voice ID', value: 'ckdz71REaQKVx2gnOQjQ', mono: true },
             { label: 'Model', value: 'eleven_multilingual_v2' },
-            { label: 'Speed', value: '1.1x' },
-            { label: 'Stability', value: '0.5' },
-            { label: 'Managed by', value: 'VAPI (no direct API key needed)' },
+            { label: 'Speed', value: '1.1x · Stability 0.5' },
+          ]}
+          editableRows={[
+            { label: 'API Key', settingKey: 'elevenlabs_api_key', placeholder: 'sk_••••••••' },
           ]}
         />
 
         {/* Deepgram */}
         <IntegrationCard
+          {...cardProps}
           icon={
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
             </svg>
           }
           name="Deepgram"
-          description="Speech-to-text transcription — converts caller audio to text in real time via VAPI."
-          status={true}
+          description="Speech-to-text transcription — converts caller audio to text in real time. Managed through VAPI."
+          badge={hasSetting('deepgram_api_key') ? 'connected' : 'via_vapi'}
           accentColor="bg-teal-600"
           docsUrl="https://console.deepgram.com"
-          fields={[
+          readOnlyRows={[
             { label: 'Model', value: 'nova-3' },
             { label: 'Language', value: 'English' },
-            { label: 'Managed by', value: 'VAPI (no direct API key needed)' },
+          ]}
+          editableRows={[
+            { label: 'API Key', settingKey: 'deepgram_api_key', placeholder: 'Token ••••••••' },
           ]}
         />
 
         {/* OpenAI */}
         <IntegrationCard
+          {...cardProps}
           icon={
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
           }
           name="OpenAI"
-          description="Large language model — powers Eh-va's conversation intelligence via VAPI."
-          status={true}
+          description="Large language model — powers Eh-va's conversation intelligence. Managed through VAPI."
+          badge={hasSetting('openai_api_key') ? 'connected' : 'via_vapi'}
           accentColor="bg-slate-700"
           docsUrl="https://platform.openai.com"
-          fields={[
+          readOnlyRows={[
             { label: 'Model', value: 'gpt-4o-mini' },
             { label: 'Temperature', value: '0.2' },
-            { label: 'Managed by', value: 'VAPI (no direct API key needed)' },
+          ]}
+          editableRows={[
+            { label: 'API Key', settingKey: 'openai_api_key', placeholder: 'sk-••••••••' },
           ]}
         />
 
         {/* Google OAuth */}
         <IntegrationCard
+          {...cardProps}
           icon={
             <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12.545 10.239v3.821h5.445c-.712 2.315-2.647 3.972-5.445 3.972a6.033 6.033 0 110-12.064c1.498 0 2.866.549 3.921 1.453l2.814-2.814A9.969 9.969 0 0012.545 2C7.021 2 2.543 6.477 2.543 12s4.478 10 10.002 10c8.396 0 10.249-7.85 9.426-11.748l-9.426-.013z"/>
@@ -235,21 +430,23 @@ export default function IntegrationsPage() {
           }
           name="Google OAuth"
           description="Dashboard authentication — restricts login to a single whitelisted Google account."
-          status={isConfigured(googleClientId) && isConfigured(googleClientSecret)}
+          badge={e.googleOAuthSet ? 'connected' : 'not_configured'}
           accentColor="bg-blue-500"
           docsUrl="https://console.cloud.google.com"
-          fields={[
-            { label: 'Client ID', value: googleClientId, masked: true, mono: true },
-            { label: 'Client Secret', value: googleClientSecret, masked: true, mono: true },
-            { label: 'Allowed Email', value: allowedEmail },
-            { label: 'Callback URL', value: baseUrl ? `${baseUrl}/api/auth/callback/google` : undefined, mono: true },
+          readOnlyRows={[
+            { label: 'Client ID', value: e.googleOAuthSet ? '••••••••••••' : null, mono: true },
+            { label: 'Client Secret', value: e.googleOAuthSet ? '••••••••••••' : null, mono: true },
+            { label: 'Allowed Email', value: e.allowedEmail },
+            { label: 'Callback URL', value: e.callbackUrl, mono: true },
           ]}
+          editableRows={[]}
         />
 
       </div>
 
       <p className="mt-6 text-xs text-slate-400">
-        Key values are masked for security. To update them, edit <code className="bg-slate-100 px-1 py-0.5 rounded font-mono">.env.local</code> locally or go to your Vercel project → Settings → Environment Variables.
+        Environment variable fields are read-only — update them in your Vercel project under{' '}
+        <span className="font-medium text-slate-500">Settings → Environment Variables</span>.
       </p>
     </div>
   )
