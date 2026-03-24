@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(wc -l \"C:\\\\Users\\\\mongo\\\\Desktop\\\\Kiros Inbound \\(Dynamic Assistant\\).blueprint.json\" \"C:\\\\Users\\\\mongo\\\\Desktop\\\\Kiros Transient Assistant.blueprint.json\")",
+      "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm run build 2>&1 | head -100)",
+      "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm run build 2>&1)",
+      "Bash(curl -s http://localhost:3000/ -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s http://localhost:3000/login -o /dev/null -w \"%{http_code}\" && curl -s http://localhost:3000/dashboard -o /dev/null -w \" %{http_code}\")",
+      "Bash(curl -s http://localhost:3000/login 2>&1 | grep -i \"error\\\\|Error\\\\|undefined\\\\|Cannot\" | head -20)",
+      "Bash(curl -s http://localhost:3000/api/vapi/system-prompt)",
+      "Bash(curl -s http://localhost:3000/api/vapi/tools -X POST -H \"Content-Type: application/json\" -d '{\"message\":{\"type\":\"function-call\",\"call\":{\"id\":\"test123\",\"customer\":{\"number\":\"+6591733883\"}},\"toolCalls\":[{\"id\":\"tc1\",\"function\":{\"name\":\"book_appointment\",\"arguments\":{\"firstName\":\"Test\",\"lastName\":\"User\",\"email\":\"test@test.com\",\"dateTime\":\"2026-04-01T10:00:00+08:00\",\"clientObjective\":\"Save for retirement\"}}}]}}' 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('base64'\\)\\)\")",
+      "Bash(taskkill /F /IM node.exe 2>&1 | head -5)",
+      "Bash(taskkill /F /IM node.exe 2>&1)",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\" 2>&1)",
+      "Bash(curl -s http://localhost:3000/api/auth/providers 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm uninstall googleapis 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm audit 2>&1)",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\" 2>&1 && sleep 2 && echo \"killed\")"
+    ]
+  }
+}

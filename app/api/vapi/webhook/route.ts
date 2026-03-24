@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from 'next/server'
+import {
+  getClientByPhone,
+  createCall,
+  updateCall,
+} from '@/lib/supabase'
+import { returningCallerConfig, newCallerConfig } from '@/lib/vapi-config'
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
+const VAPI_SECRET = process.env.VAPI_WEBHOOK_SECRET
+
+// Verify the request is genuinely from VAPI
+function isValidVapiRequest(req: NextRequest): boolean {
+  if (!VAPI_SECRET) return true // Skip check if secret not configured yet
+  const token = req.headers.get('x-vapi-secret')
+  return token === VAPI_SECRET
+}
+
+// Fetch pre-calculated dates from our own system-prompt endpoint
+async function getSystemPromptDates(): Promise<string> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/vapi/system-prompt`)
+    return await res.json()
+  } catch {
+    return 'PRE-CALCULATED DATES: Unable to load. Ask caller to confirm exact date.'
+  }
+}
+
+export async function POST(req: NextRequest) {
+  if (!isValidVapiRequest(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await req.json()
+  const { message } = body
+
+  // ── 1. ASSISTANT REQUEST ─────────────────────────────────────────────────
+  // VAPI asks: "which assistant should handle this call?"
+  if (message?.type === 'assistant-request') {
+    const phone: string = message?.call?.customer?.number ?? ''
+    const vapiCallId: string = message?.call?.id ?? ''
+
+    const systemPromptDates = await getSystemPromptDates()
+    const client = await getClientByPhone(phone)
+
+    // Create a call record immediately
+    await createCall({
+      vapi_call_id: vapiCallId,
+      client_id: client?.id,
+      phone_number: phone,
+      caller_type: client ? 'returning' : 'new',
+      started_at: new Date().toISOString(),
+    })
+
+    if (client) {
+      return NextResponse.json(returningCallerConfig(client, systemPromptDates))
+    } else {
+      return NextResponse.json(newCallerConfig(systemPromptDates))
+    }
+  }
+
+  // ── 2. END OF CALL REPORT ────────────────────────────────────────────────
+  // VAPI sends transcript, summary, success eval after call ends
+  if (message?.type === 'end-of-call-report') {
+    const vapiCallId: string = message?.call?.id ?? ''
+    const phone: string = message?.call?.customer?.number ?? ''
+    const transcript: string = message?.transcript ?? ''
+    const summary: string = message?.summary ?? ''
+    const successEval: string = message?.analysis?.successEvaluation ?? ''
+    const endedReason: string = message?.endedReason ?? ''
+    const endedAt = new Date().toISOString()
+
+    // Calculate duration
+    const startedAt = message?.call?.startedAt
+    const durationSeconds = startedAt
+      ? Math.round((Date.now() - new Date(startedAt).getTime()) / 1000)
+      : null
+
+    // Update the call record in Supabase
+    await updateCall(vapiCallId, {
+      ended_at: endedAt,
+      duration_seconds: durationSeconds ?? undefined,
+      ended_reason: endedReason,
+      transcript,
+      summary,
+      success_eval: successEval,
+    })
+
+    return NextResponse.json({ received: true })
+  }
+
+  // ── 3. TRANSCRIPT (real-time, optional) ──────────────────────────────────
+  if (message?.type === 'transcript') {
+    // Could store real-time transcript chunks if needed — skip for now
+    return NextResponse.json({ received: true })
+  }
+
+  return NextResponse.json({ received: true })
+}
