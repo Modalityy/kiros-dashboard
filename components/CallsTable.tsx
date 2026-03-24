@@ -161,8 +161,33 @@ export function CallsTable({ calls }: { calls: Call[] }) {
             <tbody className="divide-y divide-slate-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={16} className="px-4 py-10 text-center text-slate-400 text-sm">
-                    No calls found.
+                  <td colSpan={16}>
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                        <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                      </div>
+                      <p className="text-slate-700 font-medium text-sm">No calls yet</p>
+                      <p className="text-slate-400 text-xs mt-1 max-w-xs">
+                        {search ? 'No calls match your search.' : 'Calls will appear here once Eh-va starts receiving inbound calls.'}
+                      </p>
+                      {!search && (
+                        <div className="mt-5 grid grid-cols-3 gap-3 text-xs text-slate-400 max-w-sm w-full">
+                          {[
+                            { icon: '📋', label: 'Transcript', desc: 'Full call transcript' },
+                            { icon: '🎙️', label: 'Recording', desc: 'Audio playback link' },
+                            { icon: '✅', label: 'Success eval', desc: 'AI call evaluation' },
+                          ].map((f) => (
+                            <div key={f.label} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                              <div className="text-lg mb-1">{f.icon}</div>
+                              <div className="font-medium text-slate-600">{f.label}</div>
+                              <div className="text-slate-400 mt-0.5">{f.desc}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
