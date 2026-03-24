@@ -22,7 +22,11 @@
       "Bash(cmd /c \"for /f \\\\\"tokens=5\\\\\" %a in \\('netstat -aon ^| findstr :3000'\\) do taskkill /F /PID %a\" 2>&1 && cmd /c \"for /f \\\\\"tokens=5\\\\\" %a in \\('netstat -aon ^| findstr :3001'\\) do taskkill /F /PID %a\" 2>&1)",
       "Bash(cmd /c \"netstat -aon | findstr :300\")",
       "Bash(cd \"C:\\\\Users\\\\mongo\\\\Desktop\\\\kiros-dashboard\" && npm run dev 2>&1)",
-      "Bash(cmd /c \"netstat -aon | findstr LISTENING | findstr \\\\\":300\\\\\"\")"
+      "Bash(cmd /c \"netstat -aon | findstr LISTENING | findstr \\\\\":300\\\\\"\")",
+      "Bash(cmd /c \"npm list -g vercel\")",
+      "Bash(cmd /c \"where vercel\")",
+      "Bash(cmd /c \"npm install -g vercel\")",
+      "Bash(cmd /c \"vercel --version\")"
     ]
   }
 }

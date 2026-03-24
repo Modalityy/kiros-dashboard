@@ -2,9 +2,14 @@ import { Resend } from 'resend'
 import { format } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
 const FROM_EMAIL = process.env.FROM_EMAIL ?? 'Eh-va <noreply@yourdomain.com>'
 const DANIEL_EMAIL = process.env.DANIEL_EMAIL ?? 'daniel@kiros.sg'
+
+function getResend() {
+  const key = process.env.RESEND_API_KEY
+  if (!key || key.startsWith('re_your_')) return null
+  return new Resend(key)
+}
 const TIMEZONE = 'Asia/Singapore'
 
 type BookingEmailArgs = {
@@ -86,6 +91,9 @@ export async function sendConfirmationEmail({
       </div>
     `
   }
+
+  const resend = getResend()
+  if (!resend) return // Email not configured — skip silently
 
   // Send to client
   await resend.emails.send({

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where vercel:*)",
+      "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" --version)",
+      "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" --prod)",
+      "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" login:*)",
+      "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" --prod --yes)",
+      "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" inspect:*)",
+      "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" ls:*)",
+      "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" env:*)",
+      "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" alias:*)"
+    ]
+  }
+}
