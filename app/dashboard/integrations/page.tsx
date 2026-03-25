@@ -67,7 +67,6 @@ function EditableKeyRow({
   onChange,
   onSave,
   saving,
-  saved,
 }: {
   label: string
   settingKey: string
@@ -76,25 +75,54 @@ function EditableKeyRow({
   onChange: (key: string, val: string) => void
   onSave: (key: string) => void
   saving: boolean
-  saved: boolean
+  saved: boolean  // kept for prop-compat but not used — state is managed internally
 }) {
+  const [committedKey, setCommittedKey] = useState<string | null>(null)
+  // committedKey = the settingKey last successfully saved; null = no save yet in this session
+
+  const isSaved = committedKey === settingKey
+  const isDirty = value.trim().length > 0
+
+  const handleSave = async () => {
+    await onSave(settingKey)
+    // Clear the field and mark as saved so the input shows the "saved" placeholder
+    onChange(settingKey, '')
+    setCommittedKey(settingKey)
+  }
+
+  // When user starts typing after a save, reset the saved indicator
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isSaved) setCommittedKey(null)
+    onChange(settingKey, e.target.value)
+  }
+
   return (
     <div className="px-6 py-3 flex items-center gap-3 border-t border-slate-100">
       <span className="text-xs text-slate-500 flex-shrink-0 w-32">{label}</span>
       <input
         type="password"
-        autoComplete="off"
+        autoComplete="new-password"
         value={value}
-        placeholder={placeholder ?? 'Paste API key…'}
-        onChange={(e) => onChange(settingKey, e.target.value)}
-        className="flex-1 min-w-0 text-xs font-mono border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        placeholder={isSaved ? 'Key saved — paste to update' : (placeholder ?? 'Paste API key…')}
+        onChange={handleChange}
+        className={`flex-1 min-w-0 text-xs font-mono border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 bg-white transition-colors ${
+          isSaved
+            ? 'border-green-300 focus:ring-green-400 bg-green-50/40 placeholder:text-green-600'
+            : 'border-slate-200 focus:ring-blue-500'
+        }`}
       />
       <button
-        onClick={() => onSave(settingKey)}
-        disabled={saving}
-        className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
+        onClick={handleSave}
+        disabled={saving || isSaved || !isDirty}
+        className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+          isSaved
+            ? 'bg-green-100 text-green-700 cursor-default'
+            : isDirty && !saving
+            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+        }`}
       >
-        {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save'}
+        {saving ? 'Saving…' : isSaved ? '✓ Saved' : 'Save'}
       </button>
     </div>
   )
@@ -199,7 +227,6 @@ export default function IntegrationsPage() {
   const [settings, setSettings] = useState<Settings>({})
   const [loading, setLoading] = useState(true)
   const [savingKey, setSavingKey] = useState<string | null>(null)
-  const [savedKey, setSavedKey] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -224,8 +251,6 @@ export default function IntegrationsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key, value: settings[key] ?? '' }),
       })
-      setSavedKey(key)
-      setTimeout(() => setSavedKey(null), 2500)
     } finally {
       setSavingKey(null)
     }
@@ -247,7 +272,7 @@ export default function IntegrationsPage() {
   // Helpers to derive badge from env status or stored key
   const hasSetting = (key: string) => !!settings[key]
 
-  const cardProps = { settings, onSettingChange: handleChange, onSettingSave: handleSave, savingKey, savedKey }
+  const cardProps = { settings, onSettingChange: handleChange, onSettingSave: handleSave, savingKey, savedKey: null }
 
   return (
     <div className="p-8 animate-fade-in-up">
