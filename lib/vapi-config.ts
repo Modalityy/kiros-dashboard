@@ -71,18 +71,15 @@ function buildTools() {
           properties: {
             firstName: {
               type: 'string',
-              description:
-                'First name — must be spoken by the caller. Do not pass empty.',
+              description: 'First name — must be spoken by the caller.',
             },
             lastName: {
               type: 'string',
-              description:
-                'Last name — must be spoken by the caller. Do not pass empty.',
+              description: 'Last name — must be spoken by the caller.',
             },
             email: {
               type: 'string',
-              description:
-                'Email — must be spoken by the caller. Do not pass empty.',
+              description: 'Email — must be spoken by the caller.',
             },
             dateTime: {
               type: 'string',
@@ -168,7 +165,6 @@ function buildTools() {
   ];
 }
 
-// ── Default prompt templates — imported from lib/default-prompts.ts ──────────
 export { DEFAULT_RETURNING_PROMPT, DEFAULT_NEW_PROMPT };
 
 // ── RETURNING CALLER assistant config ──────────────────────────────────────
@@ -219,15 +215,16 @@ export async function returningCallerConfig(
           {
             role: 'system',
             content:
-              'You are an assistant at a fintech company. If the user is being mean, end the call using the endCall function. If the user speaks about irrelevant stuff unrelated to financial advice two or more times or when you deem that the call has reached its conclusion, use the endCall function. Once the third irrelevant detail is asked, immediately end the call using the endCall function.',
+              'You are an assistant at a fintech company. If the user is being mean, end the call using the endCall function. If the user speaks about irrelevant stuff unrelated to financial advice two or more times or when you deem that the call has reached its conclusion, use the endCall function.',
           },
           { role: 'system', content: systemPromptDates },
           { role: 'system', content: systemPrompt },
         ],
         provider: 'openai',
-        tools: buildTools(),
         temperature: 0.2,
       },
+      // TOOLS MOVED TO TOP LEVEL
+      tools: buildTools(),
       firstMessage,
       voicemailMessage: 'Please call back when you can.',
       endCallFunctionEnabled: true,
@@ -273,15 +270,16 @@ export async function newCallerConfig(systemPromptDates: string) {
           {
             role: 'system',
             content:
-              "You are an assistant at a fintech company. This caller is new and has NO profile on file — their name and email are completely unknown. RULE: You must NEVER call book_appointment unless you have already collected and confirmed the caller's first name, last name, and email address in the conversation. If any of these are missing, ask for them before proceeding. If the user is being mean, end the call using the endCall function. If the user speaks about irrelevant stuff unrelated to financial advice two or more times or when you deem that the call has reached its conclusion, use the endCall function. Once the third irrelevant detail is asked, immediately end the call using the endCall function.",
+              "You are an assistant at a fintech company. This caller is new and has NO profile on file. RULE: You must NEVER call book_appointment unless you have already collected and confirmed the caller's first name, last name, and email address.",
           },
           { role: 'system', content: systemPromptDates },
           { role: 'system', content: systemPrompt },
         ],
         provider: 'openai',
-        tools: buildTools(),
         temperature: 0.2,
       },
+      // TOOLS MOVED TO TOP LEVEL
+      tools: buildTools(),
       firstMessage,
       voicemailMessage: 'Please call back when you can.',
       endCallFunctionEnabled: true,
