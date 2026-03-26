@@ -12,7 +12,10 @@
       "Bash(\"C:\\\\Users\\\\mongo\\\\AppData\\\\Roaming\\\\npm\\\\vercel.cmd\" alias:*)",
       "Bash(node -e \"console.log\\(require\\(''crypto''\\).randomBytes\\(24\\).toString\\(''hex''\\)\\)\")",
       "Bash(node -e \":*)",
-      "Bash(vercel ls:*)"
+      "Bash(vercel ls:*)",
+      "Bash(vercel inspect:*)",
+      "Bash(vercel alias:*)",
+      "Bash(vercel --prod --yes)"
     ]
   }
 }
