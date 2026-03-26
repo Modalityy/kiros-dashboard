@@ -191,10 +191,18 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: (c
 
 type EditableField = 'first_name' | 'last_name' | 'email' | 'disc_profile' | 'phone_number' | 'objective_1' | 'objective_2' | 'objective_3' | 'objective_4'
 
-export function ClientsTable({ clients: initial }: { clients: Client[] }) {
-  const [clients, setClients] = useState(initial)
+export function ClientsTable() {
+  const [clients, setClients] = useState<Client[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/clients')
+      .then(r => r.json())
+      .then(data => { setClients(Array.isArray(data) ? data : []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
 
   // Inline editing state
   const [activeCell, setActiveCell] = useState<{ clientId: string; field: EditableField } | null>(null)
@@ -320,6 +328,13 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
+          <span className="w-4 h-4 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+          Loading clients…
         </div>
       )}
 
