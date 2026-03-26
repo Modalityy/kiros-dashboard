@@ -214,7 +214,7 @@ export async function newCallerConfig(systemPromptDates: string) {
 
   const systemPrompt = settings['prompt_new'] ?? DEFAULT_NEW_PROMPT
   const firstMessage = settings['first_message_new']
-    ?? "Hi there! You've reached Daniel Wong's financial advisory service. I'm Eh-va — how can I help you today?"
+    ?? "Hi there!"
 
   const knowledgeBase = settings['knowledge_base']?.trim()
   const kbMessage = knowledgeBase
