@@ -11,8 +11,10 @@ const VAPI_SECRET = process.env.VAPI_WEBHOOK_SECRET
 
 // Verify the request is genuinely from VAPI
 function isValidVapiRequest(req: NextRequest): boolean {
-  if (!VAPI_SECRET) return true // Skip check if secret not configured yet
+  if (!VAPI_SECRET) return true
   const token = req.headers.get('x-vapi-secret')
+    ?? req.headers.get('X-Vapi-Secret')
+    ?? req.headers.get('authorization')?.replace('Bearer ', '')
   return token === VAPI_SECRET
 }
 
@@ -24,6 +26,10 @@ async function getSystemPromptDates(): Promise<string> {
   } catch {
     return 'PRE-CALCULATED DATES: Unable to load. Ask caller to confirm exact date.'
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ status: 'ok', secret_configured: !!VAPI_SECRET })
 }
 
 export async function POST(req: NextRequest) {
