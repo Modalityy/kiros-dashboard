@@ -11,12 +11,10 @@ const VAPI_SECRET = process.env.VAPI_WEBHOOK_SECRET
 
 // Verify the request is genuinely from VAPI
 function isValidVapiRequest(req: NextRequest): boolean {
-  // Temporarily disabled to diagnose routing — re-enable after call flow confirmed
-  return true
-  // if (!VAPI_SECRET) return true
-  // const token = req.headers.get('x-vapi-secret')
-  //   ?? req.headers.get('authorization')?.replace('Bearer ', '')
-  // return token === VAPI_SECRET
+  if (!VAPI_SECRET) return true
+  const token = req.headers.get('x-vapi-secret')
+    ?? req.headers.get('authorization')?.replace('Bearer ', '')
+  return token === VAPI_SECRET
 }
 
 // Fetch pre-calculated dates from our own system-prompt endpoint

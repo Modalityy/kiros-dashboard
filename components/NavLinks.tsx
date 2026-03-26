@@ -41,6 +41,15 @@ const navItems = [
     ),
   },
   {
+    href: '/dashboard/calendar',
+    label: 'Calendar',
+    icon: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 6h16M4 11v8a1 1 0 001 1h14a1 1 0 001-1v-8" />
+      </svg>
+    ),
+  },
+  {
     href: '/dashboard/settings',
     label: 'Assistant',
     icon: (

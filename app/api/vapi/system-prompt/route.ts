@@ -5,7 +5,9 @@ import { format, addDays, startOfDay } from 'date-fns'
 // Returns a dynamically generated PRE-CALCULATED DATES block for the next 60 days
 
 export async function GET() {
-  const today = startOfDay(new Date())
+  // Vercel runs in UTC — manually offset to SGT (UTC+8)
+  const nowSGT = new Date(Date.now() + 8 * 60 * 60 * 1000)
+  const today = startOfDay(nowSGT)
 
   const lines: string[] = [
     'PRE-CALCULATED DATES (Singapore Time — use these exact dates when a caller references a day):',
