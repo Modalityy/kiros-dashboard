@@ -310,7 +310,9 @@ const SORTABLE: { label: string; key: SortKey }[] = [
   { label: 'Cost', key: 'cost_cents' },
 ]
 
-export function CallsTable({ calls }: { calls: Call[] }) {
+export function CallsTable() {
+  const [calls, setCalls] = useState<Call[]>([])
+  const [loadingCalls, setLoadingCalls] = useState(true)
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -319,6 +321,13 @@ export function CallsTable({ calls }: { calls: Call[] }) {
   const [selectedTranscript, setSelectedTranscript] = useState<{ transcript: string; summary: string | null } | null>(null)
   const [selectedRecording, setSelectedRecording] = useState<{ url: string; callerName: string; duration: number | null } | null>(null)
   const [selectedEndedReason, setSelectedEndedReason] = useState<{ reason: string; summary: string | null; vapiCallId: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/calls')
+      .then(r => r.json())
+      .then(data => { setCalls(Array.isArray(data) ? data : []); setLoadingCalls(false) })
+      .catch(() => setLoadingCalls(false))
+  }, [])
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -398,6 +407,13 @@ export function CallsTable({ calls }: { calls: Call[] }) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {loadingCalls && (
+        <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
+          <span className="w-4 h-4 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+          Loading call logs…
         </div>
       )}
 
