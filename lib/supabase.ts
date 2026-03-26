@@ -113,6 +113,11 @@ export async function updateCall(vapiCallId: string, data: Partial<Call>): Promi
   if (error) throw error
 }
 
+export async function getCallByVapiId(vapiCallId: string): Promise<Call | null> {
+  const { data } = await supabase.from('calls').select('*').eq('vapi_call_id', vapiCallId).single()
+  return data ?? null
+}
+
 export async function getCalls(limit = 50): Promise<Call[]> {
   const { data } = await supabase
     .from('calls')

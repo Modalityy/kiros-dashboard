@@ -3,6 +3,7 @@ import {
   getClientByPhone,
   createCall,
   updateCall,
+  getCallByVapiId,
 } from '@/lib/supabase'
 import { returningCallerConfig, newCallerConfig } from '@/lib/vapi-config'
 
@@ -72,13 +73,21 @@ export async function POST(req: NextRequest) {
     const costDollars: number | null = message?.call?.cost ?? null
     const costCents: number | null = costDollars !== null ? Math.round(costDollars * 100) : null
 
-    // Use VAPI's actual timestamps, not processing time
-    const startedAt: string | undefined = message?.call?.startedAt
+    // Use VAPI's actual timestamps, fall back to our own stored started_at
+    const vapiStartedAt: string | undefined = message?.call?.startedAt
     const endedAt: string = message?.call?.endedAt ?? new Date().toISOString()
-    const durationSeconds =
-      startedAt
-        ? Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000)
-        : null
+    let durationSeconds: number | null = null
+    if (vapiStartedAt) {
+      durationSeconds = Math.round((new Date(endedAt).getTime() - new Date(vapiStartedAt).getTime()) / 1000)
+    } else {
+      // VAPI didn't send startedAt — look up our own record
+      try {
+        const existing = await getCallByVapiId(vapiCallId)
+        if (existing?.started_at) {
+          durationSeconds = Math.round((new Date(endedAt).getTime() - new Date(existing.started_at).getTime()) / 1000)
+        }
+      } catch { /* non-fatal */ }
+    }
 
     // Update the call record in Supabase
     try {

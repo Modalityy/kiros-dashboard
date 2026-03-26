@@ -117,14 +117,6 @@ export default function SettingsPage() {
     }
   }
 
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (isDirty) { e.preventDefault() }
-    }
-    window.addEventListener('beforeunload', handler)
-    return () => window.removeEventListener('beforeunload', handler)
-  }, [isDirty])
-
   const getValue = (key: SettingKey, defaultValue: string) =>
     values[key] !== undefined ? values[key] : defaultValue
 
@@ -184,6 +176,32 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 animate-fade-in-up">
+
+      {/* Sticky unsaved-changes bar */}
+      {isDirty && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between gap-4 px-6 py-3 bg-slate-900 text-white shadow-lg lg:left-64">
+          <div className="flex items-center gap-2.5 text-sm">
+            <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+            You have unsaved changes
+          </div>
+          <div className="flex items-center gap-3">
+            {saveError && <span className="text-xs text-red-400">{saveError}</span>}
+            <button
+              onClick={handleSaveAll}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-1.5 bg-blue-500 hover:bg-blue-400 active:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60"
+            >
+              {saving ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Saving…
+                </>
+              ) : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Assistant</h1>
         <p className="text-slate-500 text-sm mt-1">
