@@ -56,6 +56,19 @@ function formatCost(cents: number | null) {
   return `$${(cents / 100).toFixed(3)}`
 }
 
+// Format E.164 Singapore number as +65 xxxx xxxx
+function formatPhone(phone: string | null) {
+  if (!phone) return '—'
+  const digits = phone.replace(/\D/g, '')
+  if (digits.startsWith('65') && digits.length === 10) {
+    return `+65 ${digits.slice(2, 6)} ${digits.slice(6)}`
+  }
+  if (digits.length === 8) {
+    return `+65 ${digits.slice(0, 4)} ${digits.slice(4)}`
+  }
+  return phone
+}
+
 // Derive call direction from available data — all current calls are inbound phone calls
 function callDirection(call: Call): string {
   if (!call.phone_number || call.phone_number === 'unknown') return 'Web'
@@ -305,6 +318,7 @@ export function CallsTable({ calls }: { calls: Call[] }) {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [selectedTranscript, setSelectedTranscript] = useState<{ transcript: string; summary: string | null } | null>(null)
   const [selectedRecording, setSelectedRecording] = useState<{ url: string; callerName: string; duration: number | null } | null>(null)
+  const [selectedEndedReason, setSelectedEndedReason] = useState<{ reason: string; summary: string | null; vapiCallId: string } | null>(null)
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -351,6 +365,40 @@ export function CallsTable({ calls }: { calls: Call[] }) {
           duration={selectedRecording.duration}
           onClose={() => setSelectedRecording(null)}
         />
+      )}
+      {selectedEndedReason && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setSelectedEndedReason(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h2 className="text-base font-semibold text-slate-900">Call End Details</h2>
+              <button onClick={() => setSelectedEndedReason(null)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ended Reason</p>
+                <code className="text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 block font-mono">
+                  {selectedEndedReason.reason}
+                </code>
+              </div>
+              {selectedEndedReason.summary && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Call Summary</p>
+                  <p className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 leading-relaxed">
+                    {selectedEndedReason.summary}
+                  </p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">VAPI Call ID</p>
+                <code className="text-xs text-slate-500 font-mono">{selectedEndedReason.vapiCallId}</code>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toolbar */}
@@ -447,7 +495,7 @@ export function CallsTable({ calls }: { calls: Call[] }) {
                       </td>
                       {/* Phone */}
                       <td className="px-4 py-3 text-sm font-mono text-slate-600 whitespace-nowrap">
-                        {call.phone_number}
+                        {formatPhone(call.phone_number)}
                       </td>
                       {/* Name */}
                       <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
@@ -467,9 +515,18 @@ export function CallsTable({ calls }: { calls: Call[] }) {
                       <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
                         {formatDuration(call.duration_seconds)}
                       </td>
-                      {/* Ended Reason */}
-                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
-                        {formatEndedReason(call.ended_reason)}
+                      {/* Ended Reason — clickable for details */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {call.ended_reason ? (
+                          <button
+                            onClick={() => setSelectedEndedReason({ reason: call.ended_reason!, summary: call.summary, vapiCallId: call.vapi_call_id })}
+                            className="text-xs text-slate-500 hover:text-slate-900 hover:underline underline-offset-2 transition-colors text-left"
+                          >
+                            {formatEndedReason(call.ended_reason)}
+                          </button>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
                       </td>
                       {/* Transcript */}
                       <td className="px-4 py-3 whitespace-nowrap">

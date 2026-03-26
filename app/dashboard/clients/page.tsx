@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { ClientsTable } from '@/components/ClientsTable'
 
+export const dynamic = 'force-dynamic'
+
 async function getClients() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

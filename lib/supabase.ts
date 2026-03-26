@@ -60,13 +60,13 @@ export type Booking = {
 // ── Client helpers ─────────────────────────────────────────────────────────
 
 export async function getClientByPhone(phone: string): Promise<Client | null> {
-  const normalized = phone.replace(/\s+/g, '')
-  const { data } = await supabase
-    .from('clients')
-    .select('*')
-    .ilike('phone_number', `%${normalized.slice(-8)}%`) // match last 8 digits
-    .maybeSingle()
-  return data
+  // Strip all spaces and non-digit/+ chars from the incoming number, then match last 8 digits
+  const normalized = phone.replace(/[^\d+]/g, '')
+  const last8 = normalized.slice(-8)
+  // Also fetch all and filter in JS so stored numbers with spaces still match
+  const { data } = await supabase.from('clients').select('*')
+  if (!data) return null
+  return data.find(c => c.phone_number.replace(/[^\d]/g, '').slice(-8) === last8) ?? null
 }
 
 export async function upsertClient(data: Partial<Client> & { phone_number: string }): Promise<Client> {

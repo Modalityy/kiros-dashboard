@@ -189,12 +189,7 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: (c
   )
 }
 
-type EditableField = 'first_name' | 'last_name' | 'email' | 'disc_profile' | 'objective_1' | 'objective_2' | 'objective_3' | 'objective_4'
-
-const EDITABLE_FIELDS: EditableField[] = [
-  'first_name', 'last_name', 'email', 'disc_profile',
-  'objective_1', 'objective_2', 'objective_3', 'objective_4',
-]
+type EditableField = 'first_name' | 'last_name' | 'email' | 'disc_profile' | 'phone_number' | 'objective_1' | 'objective_2' | 'objective_3' | 'objective_4'
 
 export function ClientsTable({ clients: initial }: { clients: Client[] }) {
   const [clients, setClients] = useState(initial)
@@ -205,6 +200,8 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
   const [activeCell, setActiveCell] = useState<{ clientId: string; field: EditableField } | null>(null)
   const [draft, setDraft] = useState('')
   const [savingCell, setSavingCell] = useState<{ clientId: string; field: EditableField } | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Client | null>(null)
 
   const filtered = clients.filter((c) => {
     const q = search.toLowerCase()
@@ -225,6 +222,17 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
   }
 
   const cancelEdit = () => setActiveCell(null)
+
+  const handleDelete = async (client: Client) => {
+    setDeletingId(client.id)
+    setConfirmDelete(null)
+    try {
+      await fetch(`/api/clients/${client.id}`, { method: 'DELETE' })
+      setClients(cs => cs.filter(c => c.id !== client.id))
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const commitEdit = async (clientId: string, field: EditableField, originalValue: string | null) => {
     setActiveCell(null)
@@ -294,6 +302,27 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
         />
       )}
 
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setConfirmDelete(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="text-base font-semibold text-slate-900 mb-1">Delete client?</h2>
+            <p className="text-sm text-slate-500 mb-5">
+              <span className="font-medium text-slate-700">{[confirmDelete.first_name, confirmDelete.last_name].filter(Boolean).join(' ') || confirmDelete.phone_number}</span> will be permanently removed from the database.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900">Cancel</button>
+              <button
+                onClick={() => handleDelete(confirmDelete)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-4 flex items-center gap-3">
         <input
           type="search"
@@ -320,7 +349,7 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
               <tr>
                 {[
                   'Name', 'Phone', 'Email', 'DISC',
-                  'Next Zoom', 'Objective 1', 'Obj 2', 'Obj 3', 'Obj 4', 'Since',
+                  'Next Zoom', 'Objective 1', 'Obj 2', 'Obj 3', 'Obj 4', 'Since', '',
                 ].map((col, i) => (
                   <th
                     key={i}
@@ -334,7 +363,7 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
             <tbody className="divide-y divide-slate-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={11}>
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
                         <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -363,9 +392,9 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
                         </div>
                       </div>
                     </td>
-                    {/* Phone — read-only (primary identifier) */}
-                    <td className="px-4 py-2 text-sm text-slate-500 whitespace-nowrap font-mono">
-                      {client.phone_number}
+                    {/* Phone — editable, normalised on save */}
+                    <td className="px-4 py-2 min-w-[140px]">
+                      <InlineCell client={client} field="phone_number" mono />
                     </td>
                     <td className="px-4 py-2 min-w-[160px]">
                       <InlineCell client={client} field="email" />
@@ -391,6 +420,23 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
                     </td>
                     <td className="px-4 py-2 text-xs text-slate-400 whitespace-nowrap">
                       {formatDateTime(client.created_at)}
+                    </td>
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <button
+                        onClick={() => setConfirmDelete(client)}
+                        disabled={deletingId === client.id}
+                        className="text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40"
+                        aria-label="Delete client"
+                        title="Delete client"
+                      >
+                        {deletingId === client.id ? (
+                          <span className="w-3.5 h-3.5 border border-slate-300 border-t-red-400 rounded-full animate-spin block" />
+                        ) : (
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        )}
+                      </button>
                     </td>
                   </tr>
                 ))
