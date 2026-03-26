@@ -401,8 +401,9 @@ export function ClientsTable() {
                         <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-xs flex-shrink-0">
                           {client.first_name?.[0] ?? '?'}
                         </div>
-                        <div className="flex gap-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
                           <InlineCell client={client} field="first_name" />
+                          <span className="text-slate-300 text-xs flex-shrink-0">·</span>
                           <InlineCell client={client} field="last_name" />
                         </div>
                       </div>

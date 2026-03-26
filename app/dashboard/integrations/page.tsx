@@ -110,57 +110,67 @@ function EditableKeyRow({
   placeholder?: string
   value: string
   onChange: (key: string, val: string) => void
-  onSave: (key: string) => void
+  onSave: (key: string) => Promise<boolean>
   saving: boolean
-  saved: boolean  // kept for prop-compat but not used — state is managed internally
+  saved: boolean
 }) {
-  const [committedKey, setCommittedKey] = useState<string | null>(null)
-  // committedKey = the settingKey last successfully saved; null = no save yet in this session
-
-  const isSaved = committedKey === settingKey
+  const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const isDirty = value.trim().length > 0
 
   const handleSave = async () => {
-    await onSave(settingKey)
-    // Clear the field and mark as saved so the input shows the "saved" placeholder
-    onChange(settingKey, '')
-    setCommittedKey(settingKey)
+    setStatus('idle')
+    setErrorMsg(null)
+    const ok = await onSave(settingKey)
+    if (ok) {
+      onChange(settingKey, '')
+      setStatus('saved')
+    } else {
+      setStatus('error')
+      setErrorMsg('Save failed — check Supabase settings table exists')
+    }
   }
 
-  // When user starts typing after a save, reset the saved indicator
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isSaved) setCommittedKey(null)
+    if (status !== 'idle') setStatus('idle')
     onChange(settingKey, e.target.value)
   }
 
+  const isSaved = status === 'saved'
+  const isError = status === 'error'
+
   return (
-    <div className="px-6 py-3 flex items-center gap-3 border-t border-slate-100">
-      <span className="text-xs text-slate-500 flex-shrink-0 w-32">{label}</span>
-      <input
-        type="password"
-        autoComplete="new-password"
-        value={value}
-        placeholder={isSaved ? 'Key saved — paste to update' : (placeholder ?? 'Paste API key…')}
-        onChange={handleChange}
-        className={`flex-1 min-w-0 text-xs font-mono border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 bg-white transition-colors ${
-          isSaved
-            ? 'border-green-300 focus:ring-green-400 bg-green-50/40 placeholder:text-green-600'
+    <div className="px-6 py-3 border-t border-slate-100 space-y-1.5">
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-slate-500 flex-shrink-0 w-32">{label}</span>
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={value}
+          placeholder={isSaved ? 'Key saved — paste to update' : (placeholder ?? 'Paste API key…')}
+          onChange={handleChange}
+          className={`flex-1 min-w-0 text-xs font-mono border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 bg-white transition-colors ${
+            isSaved ? 'border-green-300 focus:ring-green-400 bg-green-50/40 placeholder:text-green-600'
+            : isError ? 'border-red-300 focus:ring-red-400'
             : 'border-slate-200 focus:ring-blue-500'
-        }`}
-      />
-      <button
-        onClick={handleSave}
-        disabled={saving || isSaved || !isDirty}
-        className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-          isSaved
-            ? 'bg-green-100 text-green-700 cursor-default'
-            : isDirty && !saving
-            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+          }`}
+        />
+        <button
+          onClick={handleSave}
+          disabled={saving || isSaved || !isDirty}
+          className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+            isSaved ? 'bg-green-100 text-green-700 cursor-default'
+            : isError ? 'bg-red-100 text-red-700'
+            : isDirty && !saving ? 'bg-blue-600 hover:bg-blue-700 text-white'
             : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-        }`}
-      >
-        {saving ? 'Saving…' : isSaved ? '✓ Saved' : 'Save'}
-      </button>
+          }`}
+        >
+          {saving ? 'Saving…' : isSaved ? '✓ Saved' : isError ? 'Retry' : 'Save'}
+        </button>
+      </div>
+      {isError && errorMsg && (
+        <p className="text-xs text-red-600 pl-36">{errorMsg}</p>
+      )}
     </div>
   )
 }
@@ -177,6 +187,7 @@ function IntegrationCard({
   readOnlyRows,
   editableRows,
   settings,
+  storedKeys,
   onSettingChange,
   onSettingSave,
   savingKey,
@@ -191,8 +202,9 @@ function IntegrationCard({
   readOnlyRows: { label: string; value: string | null | undefined; mono?: boolean; secret?: boolean }[]
   editableRows: { label: string; settingKey: string; placeholder?: string }[]
   settings: Settings
+  storedKeys: Settings
   onSettingChange: (key: string, val: string) => void
-  onSettingSave: (key: string) => void
+  onSettingSave: (key: string) => Promise<boolean>
   savingKey: string | null
   savedKey: string | null
 }) {
@@ -239,19 +251,24 @@ function IntegrationCard({
           <div className="px-6 pt-3 pb-1">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">API Keys</p>
           </div>
-          {editableRows.map((row) => (
-            <EditableKeyRow
-              key={row.settingKey}
-              label={row.label}
-              settingKey={row.settingKey}
-              placeholder={row.placeholder}
-              value={settings[row.settingKey] ?? ''}
-              onChange={onSettingChange}
-              onSave={onSettingSave}
-              saving={savingKey === row.settingKey}
-              saved={savedKey === row.settingKey}
-            />
-          ))}
+          {editableRows.map((row) => {
+            const stored = storedKeys[row.settingKey] ?? null
+            return (
+              <div key={row.settingKey}>
+                {stored && <SecretRow label="Current key" value={stored} />}
+                <EditableKeyRow
+                  label={stored ? 'Replace key' : row.label}
+                  settingKey={row.settingKey}
+                  placeholder={stored ? 'Paste new key to replace' : row.placeholder}
+                  value={settings[row.settingKey] ?? ''}
+                  onChange={onSettingChange}
+                  onSave={onSettingSave}
+                  saving={savingKey === row.settingKey}
+                  saved={savedKey === row.settingKey}
+                />
+              </div>
+            )
+          })}
           <div className="h-3" />
         </div>
       )}
@@ -263,9 +280,13 @@ function IntegrationCard({
 
 export default function IntegrationsPage() {
   const [env, setEnv] = useState<EnvStatus | null>(null)
-  const [settings, setSettings] = useState<Settings>({})
+  const [storedKeys, setStoredKeys] = useState<Settings>({})  // what's in Supabase
+  const [draftKeys, setDraftKeys] = useState<Settings>({})    // what's being typed
   const [loading, setLoading] = useState(true)
   const [savingKey, setSavingKey] = useState<string | null>(null)
+
+  const refreshSettings = () =>
+    fetch('/api/settings').then(r => r.json()).then(setStoredKeys)
 
   useEffect(() => {
     Promise.all([
@@ -273,23 +294,31 @@ export default function IntegrationsPage() {
       fetch('/api/settings').then((r) => r.json()),
     ]).then(([envData, settingsData]) => {
       setEnv(envData)
-      setSettings(settingsData)
+      setStoredKeys(settingsData)
       setLoading(false)
     })
   }, [])
 
+  // settings passed to cards = draft input values (not stored values)
+  const settings = draftKeys
+
   const handleChange = (key: string, val: string) => {
-    setSettings((s) => ({ ...s, [key]: val }))
+    setDraftKeys((s) => ({ ...s, [key]: val }))
   }
 
-  const handleSave = async (key: string) => {
+  const handleSave = async (key: string): Promise<boolean> => {
     setSavingKey(key)
     try {
-      await fetch('/api/settings', {
+      const res = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, value: settings[key] ?? '' }),
+        body: JSON.stringify({ key, value: draftKeys[key] ?? '' }),
       })
+      if (!res.ok) return false
+      await refreshSettings()
+      return true
+    } catch {
+      return false
     } finally {
       setSavingKey(null)
     }
@@ -308,10 +337,9 @@ export default function IntegrationsPage() {
 
   const e = env!
 
-  // Helpers to derive badge from env status or stored key
-  const hasSetting = (key: string) => !!settings[key]
+  const hasSetting = (key: string) => !!storedKeys[key]
 
-  const cardProps = { settings, onSettingChange: handleChange, onSettingSave: handleSave, savingKey, savedKey: null }
+  const cardProps = { settings, storedKeys, onSettingChange: handleChange, onSettingSave: handleSave, savingKey, savedKey: null }
 
   return (
     <div className="p-8 animate-fade-in-up">
