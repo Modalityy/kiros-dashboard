@@ -20,9 +20,9 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
 
   // Close on Escape
   useEffect(() => {
-    const onMey = (e: MeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('keydown', onMey)
-    return () => document.removeEventListener('keydown', onMey)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
   }, [])
 
   const sidebarContent = (
