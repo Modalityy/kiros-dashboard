@@ -11,13 +11,19 @@ export async function GET() {
 
   return NextResponse.json({
     vapiSecretSet: !!process.env.VAPI_WEBHOOK_SECRET,
+    vapiSecret: process.env.VAPI_WEBHOOK_SECRET ?? null,
     vapiWebhookUrl: base ? `${base}/api/vapi/webhook` : null,
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? null, // public, safe to expose
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? null,
     supabaseKeySet: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? null,
     googleOAuthSet: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    googleClientId: process.env.GOOGLE_CLIENT_ID ?? null,
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? null,
     allowedEmail: process.env.ALLOWED_EMAIL ?? null,
     callbackUrl: base ? `${base}/api/auth/callback/google` : null,
     sheetsIdSet: !!process.env.GOOGLE_SHEETS_ID,
+    sheetsId: process.env.GOOGLE_SHEETS_ID ?? null,
     serviceAccountSet: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    serviceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ?? null,
   })
 }

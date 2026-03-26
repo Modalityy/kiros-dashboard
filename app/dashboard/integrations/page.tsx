@@ -6,14 +6,20 @@ import { useState, useEffect } from 'react'
 
 type EnvStatus = {
   vapiSecretSet: boolean
+  vapiSecret: string | null
   vapiWebhookUrl: string | null
   supabaseUrl: string | null
   supabaseKeySet: boolean
+  supabaseKey: string | null
   googleOAuthSet: boolean
+  googleClientId: string | null
+  googleClientSecret: string | null
   allowedEmail: string | null
   callbackUrl: string | null
   sheetsIdSet: boolean
+  sheetsId: string | null
   serviceAccountSet: boolean
+  serviceAccountEmail: string | null
 }
 
 type Settings = Record<string, string>
@@ -55,6 +61,37 @@ function ReadOnlyRow({ label, value, mono }: { label: string; value: string | nu
       <span className={`text-xs text-right truncate max-w-xs ${mono ? 'font-mono text-slate-600' : 'text-slate-500'}`}>
         {display}
       </span>
+    </div>
+  )
+}
+
+function SecretRow({ label, value }: { label: string; value: string | null }) {
+  const [visible, setVisible] = useState(false)
+  if (!value) return <ReadOnlyRow label={label} value={null} />
+  return (
+    <div className="px-6 py-3 flex items-center justify-between gap-4 bg-slate-50/50">
+      <span className="text-xs text-slate-400 flex-shrink-0">{label}</span>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-xs font-mono text-slate-600 truncate max-w-xs">
+          {visible ? value : '••••••••••••••••'}
+        </span>
+        <button
+          onClick={() => setVisible(v => !v)}
+          aria-label={visible ? 'Hide value' : 'Show value'}
+          className="flex-shrink-0 text-slate-400 hover:text-slate-700 transition-colors p-1 rounded hover:bg-slate-200"
+        >
+          {visible ? (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 4.411m0 0L21 21" />
+            </svg>
+          ) : (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          )}
+        </button>
+      </div>
     </div>
   )
 }
@@ -151,7 +188,7 @@ function IntegrationCard({
   badge: BadgeVariant
   accentColor: string
   docsUrl?: string
-  readOnlyRows: { label: string; value: string | null | undefined; mono?: boolean }[]
+  readOnlyRows: { label: string; value: string | null | undefined; mono?: boolean; secret?: boolean }[]
   editableRows: { label: string; settingKey: string; placeholder?: string }[]
   settings: Settings
   onSettingChange: (key: string, val: string) => void
@@ -190,9 +227,11 @@ function IntegrationCard({
       </div>
 
       <div className="border-t border-slate-100 divide-y divide-slate-50">
-        {readOnlyRows.map((row) => (
-          <ReadOnlyRow key={row.label} label={row.label} value={row.value} mono={row.mono} />
-        ))}
+        {readOnlyRows.map((row) =>
+          row.secret
+            ? <SecretRow key={row.label} label={row.label} value={row.value ?? null} />
+            : <ReadOnlyRow key={row.label} label={row.label} value={row.value} mono={row.mono} />
+        )}
       </div>
 
       {editableRows.length > 0 && (
@@ -301,7 +340,7 @@ export default function IntegrationsPage() {
           docsUrl="https://docs.vapi.ai"
           readOnlyRows={[
             { label: 'Webhook URL', value: e.vapiWebhookUrl, mono: true },
-            { label: 'Webhook Secret', value: e.vapiSecretSet ? '••••••••••••' : null, mono: true },
+            { label: 'Webhook Secret', value: e.vapiSecret, secret: true },
             { label: 'Phone Number', value: '+65 3138 2621' },
             { label: 'Voice', value: 'ElevenLabs · eleven_multilingual_v2' },
             { label: 'Transcriber', value: 'Deepgram · nova-3' },
@@ -327,7 +366,7 @@ export default function IntegrationsPage() {
           docsUrl="https://supabase.com/dashboard"
           readOnlyRows={[
             { label: 'Project URL', value: e.supabaseUrl, mono: true },
-            { label: 'Service Role Key', value: e.supabaseKeySet ? '••••••••••••' : null, mono: true },
+            { label: 'Service Role Key', value: e.supabaseKey, secret: true },
             { label: 'Tables', value: 'clients · calls · bookings · settings' },
           ]}
           editableRows={[]}
@@ -347,8 +386,8 @@ export default function IntegrationsPage() {
           accentColor="bg-green-600"
           docsUrl="https://docs.google.com/spreadsheets"
           readOnlyRows={[
-            { label: 'Sheets ID', value: e.sheetsIdSet ? '••••••••••••' : null, mono: true },
-            { label: 'Service Account', value: e.serviceAccountSet ? 'Configured' : null },
+            { label: 'Sheets ID', value: e.sheetsId, secret: true },
+            { label: 'Service Account', value: e.serviceAccountEmail, mono: true },
             { label: 'Columns', value: 'A–L: Name, Phone, DISC, Zoom, Email, Objectives, Transcript, Report' },
           ]}
           editableRows={[]}
@@ -459,8 +498,8 @@ export default function IntegrationsPage() {
           accentColor="bg-blue-500"
           docsUrl="https://console.cloud.google.com"
           readOnlyRows={[
-            { label: 'Client ID', value: e.googleOAuthSet ? '••••••••••••' : null, mono: true },
-            { label: 'Client Secret', value: e.googleOAuthSet ? '••••••••••••' : null, mono: true },
+            { label: 'Client ID', value: e.googleClientId, secret: true },
+            { label: 'Client Secret', value: e.googleClientSecret, secret: true },
             { label: 'Allowed Email', value: e.allowedEmail },
             { label: 'Callback URL', value: e.callbackUrl, mono: true },
           ]}
