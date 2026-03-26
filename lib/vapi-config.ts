@@ -6,6 +6,7 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
 }
 
 const TOOLS_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/vapi/tools`
+const LLM_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/llm`
 
 const TRANSCRIBER = {
   model: 'nova-3',
@@ -13,14 +14,6 @@ const TRANSCRIBER = {
   provider: 'deepgram',
 }
 
-const KNOWLEDGE_BASE = {
-  fileIds: [
-    'fbc3bb20-58e8-405c-987a-5c4b2da01ad1',
-    'f7255214-2f25-4419-b765-e15124ae5349',
-    '76bde244-d5eb-4450-ba74-fdba8be3ebe2',
-  ],
-  provider: 'google',
-}
 
 
 const ANALYSIS_PLAN = {
@@ -178,10 +171,10 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
           { role: 'system', content: systemPromptDates },
           { role: 'system', content: systemPrompt },
         ],
-        provider: 'openai',
+        provider: 'custom-llm',
+        url: LLM_URL,
         tools: buildTools(),
         temperature: 0.2,
-        knowledgeBase: KNOWLEDGE_BASE,
       },
       firstMessage,
       voicemailMessage: 'Please call back when you can.',
@@ -233,10 +226,10 @@ export async function newCallerConfig(systemPromptDates: string) {
           { role: 'system', content: systemPromptDates },
           { role: 'system', content: systemPrompt },
         ],
-        provider: 'openai',
+        provider: 'custom-llm',
+        url: LLM_URL,
         tools: buildTools(),
         temperature: 0.2,
-        knowledgeBase: KNOWLEDGE_BASE,
       },
       firstMessage,
       voicemailMessage: 'Please call back when you can.',
