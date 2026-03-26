@@ -6,7 +6,6 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
 }
 
 const TOOLS_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/vapi/tools`
-const LLM_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/llm`
 
 const TRANSCRIBER = {
   model: 'nova-3',
@@ -177,8 +176,7 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
           ...kbMessage,
           { role: 'system', content: systemPrompt },
         ],
-        provider: 'custom-llm',
-        url: LLM_URL,
+        provider: 'openai',
         tools: buildTools(),
         temperature: 0.2,
       },
@@ -238,8 +236,7 @@ export async function newCallerConfig(systemPromptDates: string) {
           ...kbMessage,
           { role: 'system', content: systemPrompt },
         ],
-        provider: 'custom-llm',
-        url: LLM_URL,
+        provider: 'openai',
         tools: buildTools(),
         temperature: 0.2,
       },
