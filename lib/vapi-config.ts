@@ -185,7 +185,6 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
       voice: VOICE,
       model: {
         model: 'gpt-4o-mini',
-        toolIds: TOOL_IDS,
         messages: [
           {
             role: 'system',
@@ -204,8 +203,8 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
       endCallFunctionEnabled: true,
       endCallMessage: 'Goodbye.',
       transcriber: TRANSCRIBER,
-      clientMessages: ['function-call'],
-      serverMessages: ['end-of-call-report', 'function-call', 'transcript'],
+      clientMessages: [],
+      serverMessages: ['end-of-call-report', 'transcript'],
       maxDurationSeconds: 640,
       backgroundSound: 'off',
       analysisPlan: ANALYSIS_PLAN,
@@ -232,7 +231,6 @@ export async function newCallerConfig(systemPromptDates: string) {
       voice: VOICE,
       model: {
         model: 'gpt-4o-mini',
-        toolIds: TOOL_IDS,
         messages: [
           {
             role: 'system',
@@ -251,8 +249,8 @@ export async function newCallerConfig(systemPromptDates: string) {
       endCallFunctionEnabled: true,
       endCallMessage: 'Goodbye.',
       transcriber: TRANSCRIBER,
-      clientMessages: ['function-call'],
-      serverMessages: ['end-of-call-report', 'function-call', 'transcript'],
+      clientMessages: [],
+      serverMessages: ['end-of-call-report', 'transcript'],
       maxDurationSeconds: 640,
       backgroundSound: 'off',
       analysisPlan: ANALYSIS_PLAN,
