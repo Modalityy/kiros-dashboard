@@ -57,7 +57,7 @@ function buildTools() {
           },
         },
       },
-      server: { url: TOOLS_URL, headers: {} },
+      server: { url: TOOLS_URL },
     },
     {
       type: 'function',
@@ -76,7 +76,7 @@ function buildTools() {
           },
         },
       },
-      server: { url: TOOLS_URL, headers: {} },
+      server: { url: TOOLS_URL },
     },
     {
       type: 'function',
@@ -94,7 +94,7 @@ function buildTools() {
           },
         },
       },
-      server: { url: TOOLS_URL, headers: {} },
+      server: { url: TOOLS_URL },
     },
     {
       type: 'function',
@@ -113,7 +113,7 @@ function buildTools() {
           },
         },
       },
-      server: { url: TOOLS_URL, headers: {} },
+      server: { url: TOOLS_URL },
     },
   ]
 }
@@ -177,6 +177,7 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
           { role: 'system', content: systemPrompt },
         ],
         provider: 'openai',
+        url: 'https://api.openai.com/v1',
         tools: buildTools(),
         temperature: 0.2,
       },
@@ -237,6 +238,7 @@ export async function newCallerConfig(systemPromptDates: string) {
           { role: 'system', content: systemPrompt },
         ],
         provider: 'openai',
+        url: 'https://api.openai.com/v1',
         tools: buildTools(),
         temperature: 0.2,
       },
