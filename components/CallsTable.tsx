@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 type Call = {
   id: string
@@ -43,32 +43,105 @@ function formatDateTime(iso: string | null) {
   })
 }
 
-function formatDuration(secs: number | null) {
-  if (!secs) return '—'
+function formatDuration(secs: number | null | undefined) {
+  if (secs === null || secs === undefined) return '—'
+  if (secs < 60) return `${secs}s`
   const m = Math.floor(secs / 60)
   const s = secs % 60
-  return `${m}m ${s}s`
+  return s > 0 ? `${m}m ${s}s` : `${m}m`
 }
 
-function SuccessBadge({ value }: { value: string | null }) {
-  if (!value) return <span className="text-slate-400 text-xs">—</span>
-  const isSuccess = value.toLowerCase().includes('true') || value === '1'
+function formatCost(cents: number | null) {
+  if (cents === null) return '—'
+  return `$${(cents / 100).toFixed(3)}`
+}
+
+// Derive call direction from available data — all current calls are inbound phone calls
+function callDirection(call: Call): string {
+  if (!call.phone_number || call.phone_number === 'unknown') return 'Web'
+  return 'Inbound'
+}
+
+// Show VAPI ended_reason in a readable form
+function formatEndedReason(reason: string | null): string {
+  if (!reason) return '—'
+  return reason
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// Show raw success_eval — VAPI returns nuanced text, not just true/false
+function EvalCell({ value }: { value: string | null }) {
+  if (!value) return <span className="text-slate-300 text-xs">—</span>
+
+  const lower = value.toLowerCase()
+  const isPass = lower === 'true' || lower === 'success' || lower === 'passed' || lower === '1'
+  const isFail = lower === 'false' || lower === 'failed' || lower === '0'
+
+  if (isPass || isFail) {
+    return (
+      <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
+        isPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+      }`}>
+        {isPass ? 'Pass' : 'Fail'}
+      </span>
+    )
+  }
+
+  // Longer eval text — show truncated with title tooltip
   return (
-    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
-      isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-    }`}>
-      {isSuccess ? 'Success' : 'Failed'}
+    <span
+      className="block text-xs text-slate-600 max-w-[160px] truncate"
+      title={value}
+    >
+      {value}
     </span>
   )
 }
 
-function CallerTypeBadge({ type }: { type: string }) {
+function DirectionBadge({ direction }: { direction: string }) {
+  const styles: Record<string, string> = {
+    Inbound: 'bg-blue-50 text-blue-700',
+    Outbound: 'bg-violet-50 text-violet-700',
+    Web: 'bg-slate-100 text-slate-600',
+  }
   return (
-    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
-      type === 'returning' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-    }`}>
-      {type === 'returning' ? 'Returning' : 'New'}
+    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${styles[direction] ?? 'bg-slate-100 text-slate-500'}`}>
+      {direction}
     </span>
+  )
+}
+
+function CallIdCell({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false)
+  const short = id.slice(0, 8)
+
+  const copy = () => {
+    navigator.clipboard.writeText(id).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
+  return (
+    <button
+      onClick={copy}
+      title={id}
+      className="flex items-center gap-1.5 group text-left"
+    >
+      <span className="text-xs font-mono text-slate-500 group-hover:text-slate-800 transition-colors">
+        {short}
+      </span>
+      <svg
+        className={`w-3 h-3 flex-shrink-0 transition-colors ${copied ? 'text-green-500' : 'text-slate-300 group-hover:text-slate-500'}`}
+        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+      >
+        {copied
+          ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2" />
+        }
+      </svg>
+    </button>
   )
 }
 
@@ -78,12 +151,6 @@ function RecordingModal({ url, callerName, duration, onClose }: {
   duration: number | null
   onClose: () => void
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   return (
     <div
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
@@ -92,38 +159,22 @@ function RecordingModal({ url, callerName, duration, onClose }: {
       aria-modal="true"
       aria-labelledby="recording-modal-title"
     >
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <div>
             <h2 id="recording-modal-title" className="text-base font-semibold text-slate-900">Call Recording</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{callerName}{duration ? ` · ${formatDuration(duration)}` : ''}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{callerName}{duration !== null ? ` · ${formatDuration(duration)}` : ''}</p>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close recording"
-            className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
-          >
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-
         <div className="px-6 py-6 space-y-4">
-          {/* Audio player */}
-          <audio
-            controls
-            autoPlay={false}
-            className="w-full rounded-lg"
-            src={url}
-          >
+          <audio controls autoPlay={false} className="w-full rounded-lg" src={url}>
             Your browser does not support the audio element.
           </audio>
-
-          {/* Download link */}
           <div className="flex justify-end">
             <a
               href={url}
@@ -135,7 +186,7 @@ function RecordingModal({ url, callerName, duration, onClose }: {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Download recording
+              Download
             </a>
           </div>
         </div>
@@ -144,21 +195,16 @@ function RecordingModal({ url, callerName, duration, onClose }: {
   )
 }
 
-function TranscriptModal({ transcript, summary, onClose }: { transcript: string; summary: string | null; onClose: () => void }) {
+function TranscriptModal({ transcript, summary, onClose }: {
+  transcript: string
+  summary: string | null
+  onClose: () => void
+}) {
   const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   const handleCopy = () => {
     const text = [summary ? `Summary:\n${summary}` : '', `Transcript:\n${transcript}`].filter(Boolean).join('\n\n')
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+    navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
   }
 
   return (
@@ -169,46 +215,29 @@ function TranscriptModal({ transcript, summary, onClose }: { transcript: string;
       aria-modal="true"
       aria-labelledby="transcript-modal-title"
     >
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h2 id="transcript-modal-title" className="text-base font-semibold text-slate-900">Call Transcript</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              aria-label="Copy transcript to clipboard"
               className="text-xs text-slate-500 hover:text-slate-800 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-slate-100 flex items-center gap-1.5"
             >
-              {copied ? (
-                <>
-                  <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="text-green-600">Copied</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                  </svg>
-                  Copy
-                </>
-              )}
+              <svg className={`w-3.5 h-3.5 ${copied ? 'text-green-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {copied
+                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                }
+              </svg>
+              <span className={copied ? 'text-green-600' : ''}>{copied ? 'Copied' : 'Copy'}</span>
             </button>
-            <button
-              onClick={onClose}
-              aria-label="Close transcript"
-              className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
-            >
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
-
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
           {summary && (
             <div>
@@ -226,7 +255,7 @@ function TranscriptModal({ transcript, summary, onClose }: { transcript: string;
   )
 }
 
-type SortKey = 'started_at' | 'duration_seconds' | 'caller_type' | 'success_eval'
+type SortKey = 'started_at' | 'duration_seconds' | 'cost_cents'
 type SortDir = 'asc' | 'desc'
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
@@ -239,34 +268,34 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   )
 }
 
-function formatCost(cents: number | null) {
-  if (cents === null) return '—'
-  return `$${(cents / 100).toFixed(2)}`
-}
-
 function exportCSV(calls: Call[]) {
-  const headers = ['First Name','Last Name','Phone','Type','Email','DISC','Duration (s)','Cost','Success','Date']
+  const headers = ['Call ID', 'Date', 'Phone', 'Name', 'Direction', 'Duration (s)', 'Ended Reason', 'Eval', 'Cost']
   const rows = calls.map(c => [
-    c.clients?.first_name ?? '',
-    c.clients?.last_name ?? '',
-    c.phone_number,
-    c.caller_type,
-    c.clients?.email ?? '',
-    c.clients?.disc_profile ?? '',
-    c.duration_seconds ?? '',
-    c.cost_cents !== null ? (c.cost_cents / 100).toFixed(2) : '',
-    c.success_eval ?? '',
+    c.vapi_call_id,
     c.started_at ? new Date(c.started_at).toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }) : '',
+    c.phone_number,
+    [c.clients?.first_name, c.clients?.last_name].filter(Boolean).join(' '),
+    callDirection(c),
+    c.duration_seconds ?? '',
+    c.ended_reason ?? '',
+    c.success_eval ?? '',
+    c.cost_cents !== null ? (c.cost_cents / 100).toFixed(3) : '',
   ])
   const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `call-logs-${new Date().toISOString().slice(0,10)}.csv`
+  a.download = `call-logs-${new Date().toISOString().slice(0, 10)}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
+
+const SORTABLE: { label: string; key: SortKey }[] = [
+  { label: 'Date', key: 'started_at' },
+  { label: 'Duration', key: 'duration_seconds' },
+  { label: 'Cost', key: 'cost_cents' },
+]
 
 export function CallsTable({ calls }: { calls: Call[] }) {
   const [search, setSearch] = useState('')
@@ -283,12 +312,12 @@ export function CallsTable({ calls }: { calls: Call[] }) {
   }
 
   const filtered = calls
-    .filter((c) => {
+    .filter(c => {
       const q = search.toLowerCase()
       const name = `${c.clients?.first_name ?? ''} ${c.clients?.last_name ?? ''}`.toLowerCase()
       const phone = (c.phone_number ?? '').toLowerCase()
-      const email = (c.clients?.email ?? '').toLowerCase()
-      if (q && !name.includes(q) && !phone.includes(q) && !email.includes(q)) return false
+      const id = (c.vapi_call_id ?? '').toLowerCase()
+      if (q && !name.includes(q) && !phone.includes(q) && !id.includes(q)) return false
       if (dateFrom && c.started_at && new Date(c.started_at) < new Date(dateFrom)) return false
       if (dateTo && c.started_at && new Date(c.started_at) > new Date(dateTo + 'T23:59:59')) return false
       return true
@@ -297,19 +326,14 @@ export function CallsTable({ calls }: { calls: Call[] }) {
       let av: any, bv: any
       if (sortKey === 'started_at') { av = a.started_at ?? ''; bv = b.started_at ?? '' }
       else if (sortKey === 'duration_seconds') { av = a.duration_seconds ?? -1; bv = b.duration_seconds ?? -1 }
-      else if (sortKey === 'caller_type') { av = a.caller_type; bv = b.caller_type }
-      else { av = a.success_eval ?? ''; bv = b.success_eval ?? '' }
+      else { av = a.cost_cents ?? -1; bv = b.cost_cents ?? -1 }
       if (av < bv) return sortDir === 'asc' ? -1 : 1
       if (av > bv) return sortDir === 'asc' ? 1 : -1
       return 0
     })
 
-  const sortableCols: { label: string; key: SortKey }[] = [
-    { label: 'Date', key: 'started_at' },
-    { label: 'Duration', key: 'duration_seconds' },
-    { label: 'Type', key: 'caller_type' },
-    { label: 'Success', key: 'success_eval' },
-  ]
+  // Static headers + sortable headers merged into one row
+  const staticCols = ['Call ID', 'Phone', 'Name', 'Direction', 'Ended Reason', 'Transcript', 'Recording', 'Eval']
 
   return (
     <>
@@ -333,30 +357,21 @@ export function CallsTable({ calls }: { calls: Call[] }) {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           type="search"
-          placeholder="Search by name, phone, or email…"
+          placeholder="Search by name, phone, or call ID…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
           className="w-full max-w-xs px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
         <div className="flex items-center gap-2">
           <label htmlFor="date-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
-          <input
-            id="date-from"
-            type="date"
-            value={dateFrom}
-            onChange={e => setDateFrom(e.target.value)}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          />
+          <input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
           <label htmlFor="date-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
-          <input
-            id="date-to"
-            type="date"
-            value={dateTo}
-            onChange={e => setDateTo(e.target.value)}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          />
+          <input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
           {(dateFrom || dateTo) && (
-            <button onClick={() => { setDateFrom(''); setDateTo('') }} className="text-xs text-slate-400 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100">
+            <button onClick={() => { setDateFrom(''); setDateTo('') }}
+              className="text-xs text-slate-400 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100">
               Clear
             </button>
           )}
@@ -378,27 +393,36 @@ export function CallsTable({ calls }: { calls: Call[] }) {
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
               <tr>
-                {['First Name', 'Last Name', 'Number', 'DISC', 'Zoom Meeting', 'Email',
-                  'Objective 1', 'Objective 2', 'Objective 3', 'Objective 4',
-                  'Transcript', 'Recording', 'Cost'].map((col) => (
+                {staticCols.slice(0, 4).map(col => (
                   <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
                     {col}
                   </th>
                 ))}
-                {sortableCols.map(({ label, key }) => (
+                {/* Sortable: Date, Duration */}
+                {SORTABLE.slice(0, 2).map(({ label, key }) => (
                   <th key={key} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
                     <button onClick={() => toggleSort(key)} className="flex items-center gap-0.5 hover:text-slate-800 transition-colors">
-                      {label}
-                      <SortIcon active={sortKey === key} dir={sortDir} />
+                      {label} <SortIcon active={sortKey === key} dir={sortDir} />
                     </button>
                   </th>
                 ))}
+                {staticCols.slice(4).map(col => (
+                  <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                    {col}
+                  </th>
+                ))}
+                {/* Cost last — sortable */}
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                  <button onClick={() => toggleSort('cost_cents')} className="flex items-center gap-0.5 hover:text-slate-800 transition-colors">
+                    Cost <SortIcon active={sortKey === 'cost_cents'} dir={sortDir} />
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={17}>
+                  <td colSpan={12}>
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
                         <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -409,118 +433,81 @@ export function CallsTable({ calls }: { calls: Call[] }) {
                       <p className="text-slate-400 text-xs mt-1 max-w-xs">
                         {search ? 'No calls match your search.' : 'Calls will appear here once Eh-va starts receiving inbound calls.'}
                       </p>
-                      {!search && (
-                        <div className="mt-5 grid grid-cols-3 gap-3 text-xs max-w-sm w-full">
-                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-left">
-                            <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center mb-2">
-                              <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </div>
-                            <div className="font-medium text-slate-600">Transcript</div>
-                            <div className="text-slate-400 mt-0.5">Full call transcript</div>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-left">
-                            <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center mb-2">
-                              <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                              </svg>
-                            </div>
-                            <div className="font-medium text-slate-600">Recording</div>
-                            <div className="text-slate-400 mt-0.5">Audio playback link</div>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-left">
-                            <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center mb-2">
-                              <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </div>
-                            <div className="font-medium text-slate-600">Success eval</div>
-                            <div className="text-slate-400 mt-0.5">AI call evaluation</div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </td>
                 </tr>
               ) : (
-                filtered.map((call) => (
-                  <tr key={call.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-slate-800 whitespace-nowrap font-medium">
-                      {call.clients?.first_name ?? <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-800 whitespace-nowrap">
-                      {call.clients?.last_name ?? <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap font-mono">
-                      {call.phone_number}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
-                      {call.clients?.disc_profile ?? <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
-                      {call.clients?.zoom_meeting ? formatDateTime(call.clients.zoom_meeting) : <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
-                      {call.clients?.email ?? <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[180px]">
-                      <span className="block truncate" title={call.clients?.objective_1 ?? ''}>{call.clients?.objective_1 ?? <span className="text-slate-300">—</span>}</span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px]">
-                      <span className="block truncate" title={call.clients?.objective_2 ?? ''}>{call.clients?.objective_2 ?? <span className="text-slate-300">—</span>}</span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px]">
-                      <span className="block truncate" title={call.clients?.objective_3 ?? ''}>{call.clients?.objective_3 ?? <span className="text-slate-300">—</span>}</span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px]">
-                      <span className="block truncate" title={call.clients?.objective_4 ?? ''}>{call.clients?.objective_4 ?? <span className="text-slate-300">—</span>}</span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {call.transcript ? (
-                        <button
-                          onClick={() => setSelectedTranscript({ transcript: call.transcript!, summary: call.summary })}
-                          className="text-xs text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2"
-                        >
-                          View
-                        </button>
-                      ) : (
-                        <span className="text-slate-300 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {call.recording_url ? (
-                        <button
-                          onClick={() => setSelectedRecording({
-                            url: call.recording_url!,
-                            callerName: [call.clients?.first_name, call.clients?.last_name].filter(Boolean).join(' ') || call.phone_number,
-                            duration: call.duration_seconds,
-                          })}
-                          className="text-xs text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2"
-                        >
-                          Play
-                        </button>
-                      ) : (
-                        <span className="text-slate-300 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap font-mono">
-                      {formatCost(call.cost_cents)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
-                      {formatDateTime(call.started_at)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">
-                      {formatDuration(call.duration_seconds)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <CallerTypeBadge type={call.caller_type} />
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <SuccessBadge value={call.success_eval} />
-                    </td>
-                  </tr>
-                ))
+                filtered.map(call => {
+                  const callerName = [call.clients?.first_name, call.clients?.last_name].filter(Boolean).join(' ') || call.phone_number
+                  return (
+                    <tr key={call.id} className="hover:bg-slate-50 transition-colors">
+                      {/* Call ID */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <CallIdCell id={call.vapi_call_id} />
+                      </td>
+                      {/* Phone */}
+                      <td className="px-4 py-3 text-sm font-mono text-slate-600 whitespace-nowrap">
+                        {call.phone_number}
+                      </td>
+                      {/* Name */}
+                      <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
+                        {callerName !== call.phone_number
+                          ? callerName
+                          : <span className="text-slate-300">—</span>}
+                      </td>
+                      {/* Direction */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <DirectionBadge direction={callDirection(call)} />
+                      </td>
+                      {/* Date (sortable) */}
+                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                        {formatDateTime(call.started_at)}
+                      </td>
+                      {/* Duration (sortable) */}
+                      <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                        {formatDuration(call.duration_seconds)}
+                      </td>
+                      {/* Ended Reason */}
+                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                        {formatEndedReason(call.ended_reason)}
+                      </td>
+                      {/* Transcript */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {call.transcript ? (
+                          <button
+                            onClick={() => setSelectedTranscript({ transcript: call.transcript!, summary: call.summary })}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2"
+                          >
+                            View
+                          </button>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
+                      </td>
+                      {/* Recording */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {call.recording_url ? (
+                          <button
+                            onClick={() => setSelectedRecording({ url: call.recording_url!, callerName, duration: call.duration_seconds })}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2"
+                          >
+                            Play
+                          </button>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
+                      </td>
+                      {/* Eval */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <EvalCell value={call.success_eval} />
+                      </td>
+                      {/* Cost — last */}
+                      <td className="px-4 py-3 text-xs font-mono text-slate-500 whitespace-nowrap">
+                        {formatCost(call.cost_cents)}
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>

@@ -471,12 +471,12 @@ export default function IntegrationsPage() {
             </svg>
           }
           name="OpenAI"
-          description="Large language model — powers Eh-va's conversation intelligence. Managed through VAPI."
-          badge={hasSetting('openai_api_key') ? 'connected' : 'via_vapi'}
+          description="Language model — calls route directly to OpenAI via your API key, bypassing VAPI's LLM billing."
+          badge={hasSetting('openai_api_key') ? 'connected' : 'not_configured'}
           accentColor="bg-slate-700"
           docsUrl="https://platform.openai.com"
           readOnlyRows={[
-            { label: 'Model', value: 'gpt-4o-mini' },
+            { label: 'Routing', value: 'Direct — not via VAPI' },
             { label: 'Temperature', value: '0.2' },
           ]}
           editableRows={[
