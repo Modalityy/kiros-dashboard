@@ -17,7 +17,8 @@
       "Bash(vercel alias:*)",
       "Bash(vercel --prod --yes)",
       "Bash(vercel env:*)",
-      "Bash(vercel logs:*)"
+      "Bash(vercel logs:*)",
+      "WebFetch(domain:docs.vapi.ai)"
     ]
   }
 }
