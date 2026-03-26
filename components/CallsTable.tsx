@@ -15,6 +15,7 @@ type Call = {
   summary: string | null
   success_eval: string | null
   recording_url: string | null
+  cost_cents: number | null
   clients: {
     id: string
     first_name: string | null
@@ -238,8 +239,13 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   )
 }
 
+function formatCost(cents: number | null) {
+  if (cents === null) return '—'
+  return `$${(cents / 100).toFixed(2)}`
+}
+
 function exportCSV(calls: Call[]) {
-  const headers = ['First Name','Last Name','Phone','Type','Email','DISC','Duration (s)','Success','Date']
+  const headers = ['First Name','Last Name','Phone','Type','Email','DISC','Duration (s)','Cost','Success','Date']
   const rows = calls.map(c => [
     c.clients?.first_name ?? '',
     c.clients?.last_name ?? '',
@@ -248,6 +254,7 @@ function exportCSV(calls: Call[]) {
     c.clients?.email ?? '',
     c.clients?.disc_profile ?? '',
     c.duration_seconds ?? '',
+    c.cost_cents !== null ? (c.cost_cents / 100).toFixed(2) : '',
     c.success_eval ?? '',
     c.started_at ? new Date(c.started_at).toLocaleString('en-SG', { timeZone: 'Asia/Singapore' }) : '',
   ])
@@ -373,7 +380,7 @@ export function CallsTable({ calls }: { calls: Call[] }) {
               <tr>
                 {['First Name', 'Last Name', 'Number', 'DISC', 'Zoom Meeting', 'Email',
                   'Objective 1', 'Objective 2', 'Objective 3', 'Objective 4',
-                  'Transcript', 'Recording'].map((col) => (
+                  'Transcript', 'Recording', 'Cost'].map((col) => (
                   <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
                     {col}
                   </th>
@@ -391,7 +398,7 @@ export function CallsTable({ calls }: { calls: Call[] }) {
             <tbody className="divide-y divide-slate-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={16}>
+                  <td colSpan={17}>
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
                         <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -496,6 +503,9 @@ export function CallsTable({ calls }: { calls: Call[] }) {
                       ) : (
                         <span className="text-slate-300 text-xs">—</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap font-mono">
+                      {formatCost(call.cost_cents)}
                     </td>
                     <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
                       {formatDateTime(call.started_at)}

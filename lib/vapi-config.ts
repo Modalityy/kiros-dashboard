@@ -7,15 +7,6 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
 
 const TOOLS_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/vapi/tools`
 
-const VOICE = {
-  model: 'eleven_multilingual_v2',
-  speed: 1.1,
-  voiceId: 'ckdz71REaQKVx2gnOQjQ',
-  provider: '11labs',
-  stability: 0.5,
-  useSpeakerBoost: false,
-}
-
 const TRANSCRIBER = {
   model: 'nova-3',
   language: 'en',
@@ -68,12 +59,14 @@ function buildTools() {
         description: 'Books a new appointment. Only call after first name, last name, and email are explicitly confirmed by the caller.',
         parameters: {
           type: 'object',
-          required: ['firstName', 'lastName', 'email', 'dateTime'],
+          required: ['firstName', 'lastName', 'email', 'dateTime', 'bookingType', 'appointmentType'],
           properties: {
             firstName:       { type: 'string', description: 'First name — must be spoken by the caller. Do not pass empty.' },
             lastName:        { type: 'string', description: 'Last name — must be spoken by the caller. Do not pass empty.' },
             email:           { type: 'string', description: 'Email — must be spoken by the caller. Do not pass empty.' },
             dateTime:        { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore time)' },
+            bookingType:     { type: 'string', enum: ['schedule'] },
+            appointmentType: { type: 'string', enum: ['Zoom Meeting'] },
             clientObjective: { type: 'string', description: "Caller's financial goal or objective." },
           },
         },
@@ -87,11 +80,13 @@ function buildTools() {
         description: 'Reschedules an existing appointment.',
         parameters: {
           type: 'object',
-          required: ['email', 'newDateTime'],
+          required: ['email', 'newDateTime', 'bookingType', 'appointmentType'],
           properties: {
-            email:       { type: 'string' },
-            newDateTime: { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore time)' },
-            prevDateTime: { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00' },
+            email:           { type: 'string' },
+            newDateTime:     { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore time)' },
+            prevDateTime:    { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00' },
+            bookingType:     { type: 'string', enum: ['reschedule'] },
+            appointmentType: { type: 'string', enum: ['Zoom Meeting'] },
           },
         },
       },
@@ -104,10 +99,12 @@ function buildTools() {
         description: 'Cancels an existing appointment.',
         parameters: {
           type: 'object',
-          required: ['email'],
+          required: ['email', 'bookingType', 'appointmentType'],
           properties: {
-            email:       { type: 'string' },
-            prevDateTime: { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00' },
+            email:           { type: 'string' },
+            prevDateTime:    { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00' },
+            bookingType:     { type: 'string', enum: ['cancel'] },
+            appointmentType: { type: 'string', enum: ['Zoom Meeting'] },
           },
         },
       },
@@ -143,6 +140,15 @@ export { DEFAULT_RETURNING_PROMPT, DEFAULT_NEW_PROMPT }
 export async function returningCallerConfig(client: Client, systemPromptDates: string) {
   const settings = await getAllSettings()
 
+  const voice = {
+    model: 'eleven_multilingual_v2',
+    speed: parseFloat(settings['voice_speed'] ?? '1.1'),
+    voiceId: settings['voice_id'] ?? 'ckdz71REaQKVx2gnOQjQ',
+    provider: '11labs',
+    stability: parseFloat(settings['voice_stability'] ?? '0.5'),
+    useSpeakerBoost: false,
+  }
+
   const zoomDisplay = client.zoom_meeting
     ? `${client.zoom_meeting} (YYYY/MM/DD h:mm A)`
     : 'None scheduled'
@@ -167,7 +173,7 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
   return {
     assistant: {
       name: 'Kiros AI',
-      voice: VOICE,
+      voice: voice,
       model: {
         model: 'gpt-4o-mini',
         messages: [
@@ -206,6 +212,15 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
 export async function newCallerConfig(systemPromptDates: string) {
   const settings = await getAllSettings()
 
+  const voice = {
+    model: 'eleven_multilingual_v2',
+    speed: parseFloat(settings['voice_speed'] ?? '1.1'),
+    voiceId: settings['voice_id'] ?? 'ckdz71REaQKVx2gnOQjQ',
+    provider: '11labs',
+    stability: parseFloat(settings['voice_stability'] ?? '0.5'),
+    useSpeakerBoost: false,
+  }
+
   const systemPrompt = settings['prompt_new'] ?? DEFAULT_NEW_PROMPT
   const firstMessage = settings['first_message_new']
     ?? "Hi there! You've reached Daniel Wong's financial advisory service. I'm Eh-va — how can I help you today?"
@@ -213,7 +228,7 @@ export async function newCallerConfig(systemPromptDates: string) {
   return {
     assistant: {
       name: 'Kiros AI',
-      voice: VOICE,
+      voice: voice,
       model: {
         model: 'gpt-4o-mini',
         messages: [

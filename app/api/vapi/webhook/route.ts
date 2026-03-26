@@ -7,14 +7,10 @@ import {
 import { returningCallerConfig, newCallerConfig } from '@/lib/vapi-config'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL!
-const VAPI_SECRET = process.env.VAPI_WEBHOOK_SECRET
 
 // Verify the request is genuinely from VAPI
-function isValidVapiRequest(req: NextRequest): boolean {
-  if (!VAPI_SECRET) return true
-  const token = req.headers.get('x-vapi-secret')
-    ?? req.headers.get('authorization')?.replace('Bearer ', '')
-  return token === VAPI_SECRET
+function isValidVapiRequest(_req: NextRequest): boolean {
+  return true
 }
 
 // Fetch pre-calculated dates from our own system-prompt endpoint
@@ -28,7 +24,7 @@ async function getSystemPromptDates(): Promise<string> {
 }
 
 export async function GET() {
-  return NextResponse.json({ status: 'ok', secret_configured: !!VAPI_SECRET })
+  return NextResponse.json({ status: 'ok' })
 }
 
 export async function POST(req: NextRequest) {

@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react'
 import { DEFAULT_RETURNING_PROMPT, DEFAULT_NEW_PROMPT } from '@/lib/default-prompts'
 
 type SettingKey = 'prompt_returning' | 'prompt_new' | 'first_message_new' | 'first_message_returning'
+type VoiceKey = 'voice_id' | 'voice_speed' | 'voice_stability'
+
+const VOICE_DEFAULTS: Record<VoiceKey, string> = {
+  voice_id: 'ckdz71REaQKVx2gnOQjQ',
+  voice_speed: '1.1',
+  voice_stability: '0.5',
+}
 
 const SECTIONS: { key: SettingKey; label: string; description: string; rows: number; defaultValue: string }[] = [
   {
@@ -54,12 +61,18 @@ export default function SettingsPage() {
       })
   }, [])
 
+  const getVoice = (key: VoiceKey) => values[key] ?? VOICE_DEFAULTS[key]
+
   // Warn on navigation away with unsaved changes
-  const isDirty = SECTIONS.some(({ key, defaultValue }) => {
+  const isPromptDirty = SECTIONS.some(({ key, defaultValue }) => {
     const current = values[key] !== undefined ? values[key] : defaultValue
     const persisted = savedValues[key] !== undefined ? savedValues[key] : defaultValue
     return current !== persisted
   })
+  const isVoiceDirty = (Object.keys(VOICE_DEFAULTS) as VoiceKey[]).some(
+    (k) => (values[k] ?? VOICE_DEFAULTS[k]) !== (savedValues[k] ?? VOICE_DEFAULTS[k])
+  )
+  const isDirty = isPromptDirty || isVoiceDirty
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -76,12 +89,14 @@ export default function SettingsPage() {
     setSaving(true)
     setSaveError(null)
     try {
+      const promptEntries = SECTIONS.map(({ key, defaultValue }) => ({ key, value: getValue(key, defaultValue) }))
+      const voiceEntries = (Object.keys(VOICE_DEFAULTS) as VoiceKey[]).map((k) => ({ key: k, value: getVoice(k) }))
       const results = await Promise.all(
-        SECTIONS.map(({ key, defaultValue }) =>
+        [...promptEntries, ...voiceEntries].map(({ key, value }) =>
           fetch('/api/settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key, value: getValue(key, defaultValue) }),
+            body: JSON.stringify({ key, value }),
           }).then(r => r.json())
         )
       )
@@ -92,6 +107,9 @@ export default function SettingsPage() {
         const snapshot: Record<string, string> = {}
         SECTIONS.forEach(({ key, defaultValue }) => {
           snapshot[key] = values[key] !== undefined ? values[key] : defaultValue
+        })
+        ;(Object.keys(VOICE_DEFAULTS) as VoiceKey[]).forEach((k) => {
+          snapshot[k] = getVoice(k)
         })
         setSavedValues(snapshot)
         setSaved(true)
@@ -131,6 +149,74 @@ export default function SettingsPage() {
           {['{firstName}', '{lastName}', '{email}', '{zoomDisplay}', '{objective_1}', '{objective_2}', '{objective_3}', '{objective_4}'].map(p => (
             <code key={p} className="text-xs bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded font-mono">{p}</code>
           ))}
+        </div>
+      </div>
+
+      {/* Voice settings */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-slate-900">Voice Settings</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Controls ElevenLabs voice output. Changes take effect on the next call.</p>
+        </div>
+        <div className="p-6 space-y-5">
+          {/* Voice ID */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Voice ID</label>
+            <input
+              type="text"
+              value={getVoice('voice_id')}
+              onChange={e => setValues(v => ({ ...v, voice_id: e.target.value }))}
+              className="w-full max-w-sm text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="ElevenLabs voice ID"
+            />
+            <p className="text-xs text-slate-400 mt-1">Find this in your ElevenLabs voice library.</p>
+          </div>
+
+          {/* Speed */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-slate-600">Speed</label>
+              <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                {parseFloat(getVoice('voice_speed')).toFixed(2)}×
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.25"
+              max="4.0"
+              step="0.05"
+              value={getVoice('voice_speed')}
+              onChange={e => setValues(v => ({ ...v, voice_speed: e.target.value }))}
+              className="w-full max-w-sm accent-blue-600"
+            />
+            <div className="flex justify-between text-xs text-slate-400 max-w-sm mt-0.5">
+              <span>0.25×</span>
+              <span>4.0×</span>
+            </div>
+          </div>
+
+          {/* Stability */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-slate-600">Stability</label>
+              <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                {parseFloat(getVoice('voice_stability')).toFixed(2)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={getVoice('voice_stability')}
+              onChange={e => setValues(v => ({ ...v, voice_stability: e.target.value }))}
+              className="w-full max-w-sm accent-blue-600"
+            />
+            <div className="flex justify-between text-xs text-slate-400 max-w-sm mt-0.5">
+              <span>More variable</span>
+              <span>More stable</span>
+            </div>
+          </div>
         </div>
       </div>
 

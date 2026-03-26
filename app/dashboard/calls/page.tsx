@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { CallsTable } from '@/components/CallsTable'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 const PAGE_SIZE = 50
 
 async function getCalls(page: number) {
@@ -56,7 +58,7 @@ export default async function CallsPage({
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Call Logs</h1>
-          <p className="text-slate-500 text-sm mt-1">{total} calls total</p>
+          <p className="text-slate-500 text-sm mt-1">{total} {total === 1 ? 'call' : 'calls'} total</p>
         </div>
       </div>
       <CallsTable calls={calls} />
