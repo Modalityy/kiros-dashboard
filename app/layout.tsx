@@ -3,8 +3,8 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata: Metadata = {
-  title: 'Kiros Dashboard',
-  description: 'AI Voice Assistant Management Dashboard',
+  title: 'Meridian',
+  description: 'AI Voice Assistant Management',
 }
 
 export default function RootLayout({

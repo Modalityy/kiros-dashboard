@@ -34,11 +34,11 @@ function LoginContent() {
           <div className="flex flex-col items-center mb-8">
             <div className="relative mb-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/30">
-                K
+                M
               </div>
               <div className="absolute -inset-1 bg-blue-500/20 rounded-2xl blur-md -z-10" />
             </div>
-            <h1 className="text-xl font-bold text-white">Kiros Dashboard</h1>
+            <h1 className="text-xl font-bold text-white">Meridian</h1>
             <p className="text-sm text-white/40 mt-1">AI Voice Assistant Management</p>
           </div>
 

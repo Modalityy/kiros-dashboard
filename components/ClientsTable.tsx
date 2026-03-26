@@ -177,10 +177,169 @@ function EditModal({ client, onClose, onSaved }: { client: Client; onClose: () =
   )
 }
 
+const EMPTY_ADD_FORM = {
+  phone_number: '',
+  first_name: '',
+  last_name: '',
+  email: '',
+  disc_profile: '',
+  objective_1: '',
+  objective_2: '',
+  objective_3: '',
+  objective_4: '',
+}
+
+function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: (c: Client) => void }) {
+  const [form, setForm] = useState(EMPTY_ADD_FORM)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const handleAdd = async () => {
+    if (!form.phone_number.trim()) { setError('Phone number is required.'); return }
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to add client')
+      onAdded(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-client-title"
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h2 id="add-client-title" className="text-base font-semibold text-slate-900">Add Client</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4">
+          <div>
+            <label htmlFor="add-phone" className="block text-xs font-medium text-slate-500 mb-1">
+              Phone Number <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="add-phone"
+              type="tel"
+              value={form.phone_number}
+              onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
+              placeholder="+65 9123 4567"
+              className="w-full text-sm font-mono border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {(['first_name', 'last_name'] as const).map((field) => (
+              <div key={field}>
+                <label htmlFor={`add-${field}`} className="block text-xs font-medium text-slate-500 mb-1 capitalize">
+                  {field.replace('_', ' ')}
+                </label>
+                <input
+                  id={`add-${field}`}
+                  type="text"
+                  value={form[field]}
+                  onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="add-email" className="block text-xs font-medium text-slate-500 mb-1">Email</label>
+              <input
+                id="add-email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="add-disc" className="block text-xs font-medium text-slate-500 mb-1">DISC Profile</label>
+              <input
+                id="add-disc"
+                type="text"
+                value={form.disc_profile}
+                onChange={(e) => setForm((f) => ({ ...f, disc_profile: e.target.value }))}
+                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="block text-xs font-medium text-slate-500 mb-1">Objectives</p>
+            <div className="space-y-2">
+              {(['objective_1', 'objective_2', 'objective_3', 'objective_4'] as const).map((field, i) => (
+                <input
+                  key={field}
+                  type="text"
+                  aria-label={`Objective ${i + 1}`}
+                  placeholder={`Objective ${i + 1}`}
+                  value={form[field]}
+                  onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              ))}
+            </div>
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+
+        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={handleAdd}
+            disabled={saving}
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-60"
+          >
+            {saving ? 'Adding…' : 'Add Client'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ClientsTable({ clients: initial }: { clients: Client[] }) {
   const [clients, setClients] = useState(initial)
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Client | null>(null)
+  const [adding, setAdding] = useState(false)
 
   const filtered = clients.filter((c) => {
     const q = search.toLowerCase()
@@ -195,6 +354,11 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
     setEditing(null)
   }
 
+  const handleAdded = (newClient: Client) => {
+    setClients((cs) => [newClient, ...cs])
+    setAdding(false)
+  }
+
   return (
     <>
       {editing && (
@@ -204,8 +368,14 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
           onSaved={handleSaved}
         />
       )}
+      {adding && (
+        <AddClientModal
+          onClose={() => setAdding(false)}
+          onAdded={handleAdded}
+        />
+      )}
 
-      <div className="mb-4">
+      <div className="mb-4 flex items-center gap-3">
         <input
           type="search"
           placeholder="Search by name, phone, or email…"
@@ -213,6 +383,15 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-sm px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Client
+        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

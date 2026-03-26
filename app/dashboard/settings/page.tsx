@@ -61,6 +61,9 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [openaiModels, setOpenaiModels] = useState<string[]>([])
+  const [fetchingModels, setFetchingModels] = useState(false)
+  const [fetchModelsError, setFetchModelsError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -92,7 +95,27 @@ export default function SettingsPage() {
     (k) => (values[k] ?? VOICE_DEFAULTS[k]) !== (savedValues[k] ?? VOICE_DEFAULTS[k])
   )
   const isLLMDirty = getLLMModel() !== (savedValues['llm_model'] ?? LLM_DEFAULT)
-  const isDirty = isPromptDirty || isVoiceDirty || isLLMDirty
+  const isKBDirty = (values['knowledge_base'] ?? '') !== (savedValues['knowledge_base'] ?? '')
+  const isDirty = isPromptDirty || isVoiceDirty || isLLMDirty || isKBDirty
+
+  const fetchModels = async () => {
+    setFetchingModels(true)
+    setFetchModelsError(null)
+    try {
+      const res = await fetch('/api/openai/models')
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to fetch')
+      setOpenaiModels(data)
+      // If current model is in the live list, keep it selected; otherwise switch to custom
+      if (data.length > 0 && !data.includes(getLLMModel())) {
+        setValues(v => ({ ...v, llm_model: data[0] }))
+      }
+    } catch (e: any) {
+      setFetchModelsError(e.message)
+    } finally {
+      setFetchingModels(false)
+    }
+  }
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -111,9 +134,12 @@ export default function SettingsPage() {
     try {
       const promptEntries = SECTIONS.map(({ key, defaultValue }) => ({ key, value: getValue(key, defaultValue) }))
       const voiceEntries = (Object.keys(VOICE_DEFAULTS) as VoiceKey[]).map((k) => ({ key: k, value: getVoice(k) }))
-      const llmEntry = { key: 'llm_model', value: getLLMModel() }
+      const extraEntries = [
+        { key: 'llm_model', value: getLLMModel() },
+        { key: 'knowledge_base', value: values['knowledge_base'] ?? '' },
+      ]
       const results = await Promise.all(
-        [...promptEntries, ...voiceEntries, llmEntry].map(({ key, value }) =>
+        [...promptEntries, ...voiceEntries, ...extraEntries].map(({ key, value }) =>
           fetch('/api/settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -133,6 +159,7 @@ export default function SettingsPage() {
           snapshot[k] = getVoice(k)
         })
         snapshot['llm_model'] = getLLMModel()
+        snapshot['knowledge_base'] = values['knowledge_base'] ?? ''
         setSavedValues(snapshot)
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
@@ -176,65 +203,94 @@ export default function SettingsPage() {
 
       {/* LLM model selector */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Language Model</h2>
-          <p className="text-xs text-slate-400 mt-0.5">The LLM that powers Eh-va's conversation. Changes take effect on the next call.</p>
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Language Model</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Calls route directly to OpenAI — VAPI's LLM billing is bypassed.</p>
+          </div>
+          <button
+            onClick={fetchModels}
+            disabled={fetchingModels}
+            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {fetchingModels ? (
+              <span className="w-3.5 h-3.5 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+            {fetchingModels ? 'Fetching…' : 'Fetch from OpenAI'}
+          </button>
         </div>
         <div className="p-6 space-y-4">
-          {/* Preset cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {LLM_MODELS.map((m) => {
-              const active = selectedPreset === m.id
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => {
-                    if (m.id === '__custom__') {
-                      setValues(v => ({ ...v, llm_model: '' }))
-                    } else {
-                      setValues(v => ({ ...v, llm_model: m.id }))
-                    }
-                  }}
-                  className={`text-left px-4 py-3 rounded-xl border transition-all ${
-                    active
-                      ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className={`text-sm font-semibold ${active ? 'text-blue-700' : 'text-slate-800'}`}>
-                    {m.label}
-                  </div>
-                  <div className={`text-xs mt-0.5 ${active ? 'text-blue-500' : 'text-slate-400'}`}>
-                    {m.description}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+          {fetchModelsError && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{fetchModelsError}</p>
+          )}
 
-          {/* Custom model input — shown when custom is selected or stored value is unknown */}
-          {selectedPreset === '__custom__' && (
+          {/* Live model list (shown after fetch) */}
+          {openaiModels.length > 0 ? (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Select model <span className="text-slate-400 font-normal">({openaiModels.length} available)</span>
+              </label>
+              <select
+                value={getLLMModel()}
+                onChange={e => setValues(v => ({ ...v, llm_model: e.target.value }))}
+                className="w-full max-w-sm text-sm font-mono text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {openaiModels.map(id => (
+                  <option key={id} value={id}>{id}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            /* Preset cards (shown before fetch) */
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {LLM_MODELS.map((m) => {
+                const active = selectedPreset === m.id
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      if (m.id === '__custom__') {
+                        setValues(v => ({ ...v, llm_model: '' }))
+                      } else {
+                        setValues(v => ({ ...v, llm_model: m.id }))
+                      }
+                    }}
+                    className={`text-left px-4 py-3 rounded-xl border transition-all ${
+                      active
+                        ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`text-sm font-semibold ${active ? 'text-blue-700' : 'text-slate-800'}`}>{m.label}</div>
+                    <div className={`text-xs mt-0.5 ${active ? 'text-blue-500' : 'text-slate-400'}`}>{m.description}</div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Custom text input */}
+          {selectedPreset === '__custom__' && openaiModels.length === 0 && (
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">Custom Model ID</label>
               <input
                 type="text"
                 value={customModelValue}
                 onChange={e => setValues(v => ({ ...v, llm_model: e.target.value }))}
-                placeholder="e.g. gpt-5, gpt-5-mini, o4-mini…"
-                className="w-full max-w-sm text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g. gpt-5, o4-mini…"
+                className="w-full max-w-sm text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-slate-400 mt-1">
-                Must match a model ID supported by your VAPI + OpenAI provider.
-                Check <span className="font-medium text-slate-500">docs.vapi.ai</span> for the latest list.
-              </p>
             </div>
           )}
 
-          {/* Active model pill */}
           <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs text-slate-400">Active model:</span>
+            <span className="text-xs text-slate-400">Active:</span>
             <code className="text-xs font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
-              {getLLMModel() || <span className="text-slate-400 italic">not set</span>}
+              {getLLMModel() || <span className="italic text-slate-400">not set</span>}
             </code>
             {isLLMDirty && <span className="text-xs text-amber-600 font-medium">· unsaved</span>}
           </div>
@@ -306,6 +362,30 @@ export default function SettingsPage() {
               <span>More stable</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Knowledge Base */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Knowledge Base</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Plain text injected as context into every call. Use this for FAQs, product info, policies — anything Eh-va should know.</p>
+          </div>
+          {isKBDirty && (
+            <span className="text-xs text-amber-600 font-medium flex-shrink-0 mt-1">unsaved</span>
+          )}
+        </div>
+        <div className="p-4">
+          <textarea
+            rows={12}
+            value={values['knowledge_base'] ?? ''}
+            onChange={e => setValues(v => ({ ...v, knowledge_base: e.target.value }))}
+            placeholder="Enter reference material here. This text is passed directly to the assistant as context on every call."
+            className="w-full text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all leading-relaxed placeholder:text-slate-400 placeholder:font-sans"
+            spellCheck={false}
+          />
+          <p className="text-xs text-slate-400 mt-1.5">{(values['knowledge_base'] ?? '').length.toLocaleString()} characters</p>
         </div>
       </div>
 

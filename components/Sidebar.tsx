@@ -20,9 +20,9 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
 
   // Close on Escape
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    const onMey = (e: MeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onMey)
+    return () => document.removeEventListener('keydown', onMey)
   }, [])
 
   const sidebarContent = (
@@ -30,11 +30,11 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-          K
+          M
         </div>
         <div>
-          <div className="text-white font-semibold text-sm leading-tight">Kiros</div>
-          <div className="text-slate-400 text-xs">Dashboard</div>
+          <div className="text-white font-semibold text-sm leading-tight">Meridian</div>
+          <div className="text-slate-400 text-xs">Console</div>
         </div>
         {/* Close button — mobile only */}
         <button
@@ -85,8 +85,8 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-xs">K</div>
-        <span className="text-white font-semibold text-sm">Kiros</span>
+        <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-white font-bold text-xs">M</div>
+        <span className="text-white font-semibold text-sm">Meridian</span>
       </div>
 
       {/* Mobile drawer overlay */}

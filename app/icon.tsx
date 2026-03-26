@@ -10,8 +10,8 @@ export default function Icon() {
         style={{
           width: 32,
           height: 32,
-          borderRadius: 8,
-          background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+          borderRadius: 7,
+          background: 'linear-gradient(135deg, #3b82f6, #1e40af)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -21,7 +21,7 @@ export default function Icon() {
           fontFamily: 'sans-serif',
         }}
       >
-        K
+        M
       </div>
     ),
     { ...size }

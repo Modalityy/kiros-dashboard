@@ -157,6 +157,11 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
     ? fillTemplate(settings['first_message_returning'], templateVars)
     : `Hi ${client.first_name}!`
 
+  const knowledgeBase = settings['knowledge_base']?.trim()
+  const kbMessage = knowledgeBase
+    ? [{ role: 'system', content: `Knowledge Base:\n\n${knowledgeBase}` }]
+    : []
+
   return {
     assistant: {
       name: 'Kiros AI',
@@ -169,6 +174,7 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
             content: 'You are an assistant at a fintech company. If the user is being mean, end the call using the endCall function. If the user speaks about irrelevant stuff unrelated to financial advice two or more times or when you deem that the call has reached its conclusion, use the endCall function. Once the third irrelevant detail is asked, immediately end the call using the endCall function.',
           },
           { role: 'system', content: systemPromptDates },
+          ...kbMessage,
           { role: 'system', content: systemPrompt },
         ],
         provider: 'custom-llm',
@@ -212,6 +218,11 @@ export async function newCallerConfig(systemPromptDates: string) {
   const firstMessage = settings['first_message_new']
     ?? "Hi there! You've reached Daniel Wong's financial advisory service. I'm Eh-va — how can I help you today?"
 
+  const knowledgeBase = settings['knowledge_base']?.trim()
+  const kbMessage = knowledgeBase
+    ? [{ role: 'system', content: `Knowledge Base:\n\n${knowledgeBase}` }]
+    : []
+
   return {
     assistant: {
       name: 'Kiros AI',
@@ -224,6 +235,7 @@ export async function newCallerConfig(systemPromptDates: string) {
             content: "You are an assistant at a fintech company. This caller is new and has NO profile on file — their name and email are completely unknown. RULE: You must NEVER call book_appointment unless you have already collected and confirmed the caller's first name, last name, and email address in the conversation. If any of these are missing, ask for them before proceeding. If the user is being mean, end the call using the endCall function. If the user speaks about irrelevant stuff unrelated to financial advice two or more times or when you deem that the call has reached its conclusion, use the endCall function. Once the third irrelevant detail is asked, immediately end the call using the endCall function.",
           },
           { role: 'system', content: systemPromptDates },
+          ...kbMessage,
           { role: 'system', content: systemPrompt },
         ],
         provider: 'custom-llm',
