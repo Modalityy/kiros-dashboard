@@ -18,7 +18,15 @@
       "Bash(vercel --prod --yes)",
       "Bash(vercel env:*)",
       "Bash(vercel logs:*)",
-      "WebFetch(domain:docs.vapi.ai)"
+      "WebFetch(domain:docs.vapi.ai)",
+      "Bash(while IFS= read -r url)",
+      "Bash(do echo:*)",
+      "Bash(vercel rm:*)",
+      "Bash(done)",
+      "Read(//c/Users/mongo/Desktop/kiros-dashboard/**)",
+      "Bash(1 done:*)",
+      "Bash(do vercel:*)",
+      "Bash(until ! vercel ls)"
     ]
   }
 }
