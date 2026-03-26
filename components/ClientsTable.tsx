@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 
 type Client = {
   id: string
@@ -31,151 +30,6 @@ function formatDateTime(iso: string | null) {
   })
 }
 
-function EditModal({ client, onClose, onSaved }: { client: Client; onClose: () => void; onSaved: (updated: Client) => void }) {
-  const [form, setForm] = useState({
-    first_name: client.first_name ?? '',
-    last_name: client.last_name ?? '',
-    email: client.email ?? '',
-    disc_profile: client.disc_profile ?? '',
-    objective_1: client.objective_1 ?? '',
-    objective_2: client.objective_2 ?? '',
-    objective_3: client.objective_3 ?? '',
-    objective_4: client.objective_4 ?? '',
-  })
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  const handleSave = async () => {
-    setSaving(true)
-    setError(null)
-    try {
-      const res = await fetch(`/api/clients/${client.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Failed to save')
-      onSaved({ ...client, ...form })
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edit-client-title"
-    >
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 id="edit-client-title" className="text-base font-semibold text-slate-900">Edit Client</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close edit client"
-            className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="px-6 py-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            {(['first_name', 'last_name'] as const).map((field) => (
-              <div key={field}>
-                <label htmlFor={`edit-${field}`} className="block text-xs font-medium text-slate-500 mb-1 capitalize">
-                  {field.replace('_', ' ')}
-                </label>
-                <input
-                  id={`edit-${field}`}
-                  type="text"
-                  value={form[field]}
-                  onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="edit-email" className="block text-xs font-medium text-slate-500 mb-1">Email</label>
-              <input
-                id="edit-email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="edit-disc" className="block text-xs font-medium text-slate-500 mb-1">DISC Profile</label>
-              <input
-                id="edit-disc"
-                type="text"
-                value={form.disc_profile}
-                onChange={(e) => setForm((f) => ({ ...f, disc_profile: e.target.value }))}
-                className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <p className="block text-xs font-medium text-slate-500 mb-1">Objectives</p>
-            <div className="space-y-2">
-              {(['objective_1', 'objective_2', 'objective_3', 'objective_4'] as const).map((field, i) => (
-                <input
-                  key={field}
-                  id={`edit-${field}`}
-                  type="text"
-                  aria-label={`Objective ${i + 1}`}
-                  placeholder={`Objective ${i + 1}`}
-                  value={form[field]}
-                  onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                  className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              ))}
-            </div>
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-        </div>
-
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-60"
-          >
-            {saving ? 'Saving…' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 const EMPTY_ADD_FORM = {
   phone_number: '',
@@ -335,11 +189,22 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: (c
   )
 }
 
+type EditableField = 'first_name' | 'last_name' | 'email' | 'disc_profile' | 'objective_1' | 'objective_2' | 'objective_3' | 'objective_4'
+
+const EDITABLE_FIELDS: EditableField[] = [
+  'first_name', 'last_name', 'email', 'disc_profile',
+  'objective_1', 'objective_2', 'objective_3', 'objective_4',
+]
+
 export function ClientsTable({ clients: initial }: { clients: Client[] }) {
   const [clients, setClients] = useState(initial)
   const [search, setSearch] = useState('')
-  const [editing, setEditing] = useState<Client | null>(null)
   const [adding, setAdding] = useState(false)
+
+  // Inline editing state
+  const [activeCell, setActiveCell] = useState<{ clientId: string; field: EditableField } | null>(null)
+  const [draft, setDraft] = useState('')
+  const [savingCell, setSavingCell] = useState<{ clientId: string; field: EditableField } | null>(null)
 
   const filtered = clients.filter((c) => {
     const q = search.toLowerCase()
@@ -349,25 +214,79 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
     return !q || name.includes(q) || phone.includes(q) || email.includes(q)
   })
 
-  const handleSaved = (updated: Client) => {
-    setClients((cs) => cs.map((c) => (c.id === updated.id ? updated : c)))
-    setEditing(null)
-  }
-
   const handleAdded = (newClient: Client) => {
     setClients((cs) => [newClient, ...cs])
     setAdding(false)
   }
 
+  const startEdit = (client: Client, field: EditableField) => {
+    setActiveCell({ clientId: client.id, field })
+    setDraft(client[field] ?? '')
+  }
+
+  const cancelEdit = () => setActiveCell(null)
+
+  const commitEdit = async (clientId: string, field: EditableField, originalValue: string | null) => {
+    setActiveCell(null)
+    const trimmed = draft.trim()
+    if (trimmed === (originalValue ?? '')) return // no change
+    setSavingCell({ clientId, field })
+    try {
+      const res = await fetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: trimmed }),
+      })
+      if (res.ok) {
+        setClients((cs) => cs.map((c) => c.id === clientId ? { ...c, [field]: trimmed || null } : c))
+      }
+    } finally {
+      setSavingCell(null)
+    }
+  }
+
+  function InlineCell({ client, field, mono, maxW }: { client: Client; field: EditableField; mono?: boolean; maxW?: string }) {
+    const isActive = activeCell?.clientId === client.id && activeCell.field === field
+    const isSaving = savingCell?.clientId === client.id && savingCell.field === field
+    const value = client[field] ?? ''
+
+    if (isActive) {
+      return (
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => commitEdit(client.id, field, client[field])}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commitEdit(client.id, field, client[field]) }
+            if (e.key === 'Escape') cancelEdit()
+          }}
+          className={`w-full min-w-[100px] text-sm border border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white ${mono ? 'font-mono' : ''}`}
+        />
+      )
+    }
+
+    return (
+      <button
+        onClick={() => startEdit(client, field)}
+        title="Click to edit"
+        className={`group flex items-center gap-1 w-full text-left text-sm rounded px-1 py-0.5 hover:bg-blue-50 transition-colors ${maxW ?? ''}`}
+      >
+        {isSaving ? (
+          <span className="w-3 h-3 border border-slate-300 border-t-blue-500 rounded-full animate-spin flex-shrink-0" />
+        ) : null}
+        <span className={`block truncate ${value ? 'text-slate-700' : 'text-slate-300'} ${mono ? 'font-mono' : ''}`}>
+          {value || '—'}
+        </span>
+        <svg className="w-3 h-3 text-slate-300 group-hover:text-blue-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
+        </svg>
+      </button>
+    )
+  }
+
   return (
     <>
-      {editing && (
-        <EditModal
-          client={editing}
-          onClose={() => setEditing(null)}
-          onSaved={handleSaved}
-        />
-      )}
       {adding && (
         <AddClientModal
           onClose={() => setAdding(false)}
@@ -401,7 +320,7 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
               <tr>
                 {[
                   'Name', 'Phone', 'Email', 'DISC',
-                  'Next Zoom', 'Objective 1', 'Obj 2', 'Obj 3', 'Obj 4', 'Since', '',
+                  'Next Zoom', 'Objective 1', 'Obj 2', 'Obj 3', 'Obj 4', 'Since',
                 ].map((col, i) => (
                   <th
                     key={i}
@@ -415,7 +334,7 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
             <tbody className="divide-y divide-slate-50">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11}>
+                  <td colSpan={10}>
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
                         <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -424,95 +343,54 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
                       </div>
                       <p className="text-slate-700 font-medium text-sm">No clients yet</p>
                       <p className="text-slate-400 text-xs mt-1 max-w-xs">
-                        {search ? 'No clients match your search.' : 'Clients are added automatically when a new caller books an appointment through Eh-va.'}
+                        {search ? 'No clients match your search.' : 'Clients are added automatically when a caller books through Eh-va, or add one manually above.'}
                       </p>
-                      {!search && (
-                        <div className="mt-5 grid grid-cols-2 gap-3 text-xs max-w-xs w-full">
-                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-left">
-                            <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center mb-2">
-                              <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                              </svg>
-                            </div>
-                            <div className="font-medium text-slate-600">Objectives</div>
-                            <div className="text-slate-400 mt-0.5">Up to 4 financial goals per client</div>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 text-left">
-                            <div className="w-6 h-6 rounded bg-slate-200 flex items-center justify-center mb-2">
-                              <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </div>
-                            <div className="font-medium text-slate-600">Editable</div>
-                            <div className="text-slate-400 mt-0.5">Update details directly from the table</div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </td>
                 </tr>
               ) : (
                 filtered.map((client) => (
-                  <tr key={client.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-xs flex-shrink-0">
+                  <tr key={client.id} className="hover:bg-slate-50/60 transition-colors">
+                    {/* Name — first + last inline editable */}
+                    <td className="px-4 py-2 whitespace-nowrap">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-xs flex-shrink-0">
                           {client.first_name?.[0] ?? '?'}
                         </div>
-                        <div>
-                          <Link
-                            href={`/dashboard/clients/${client.id}`}
-                            className="text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors"
-                          >
-                            {client.first_name} {client.last_name}
-                          </Link>
+                        <div className="flex gap-1 min-w-0">
+                          <InlineCell client={client} field="first_name" />
+                          <InlineCell client={client} field="last_name" />
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap font-mono">
+                    {/* Phone — read-only (primary identifier) */}
+                    <td className="px-4 py-2 text-sm text-slate-500 whitespace-nowrap font-mono">
                       {client.phone_number}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
-                      {client.email ?? <span className="text-slate-300">—</span>}
+                    <td className="px-4 py-2 min-w-[160px]">
+                      <InlineCell client={client} field="email" />
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
-                      {client.disc_profile ?? <span className="text-slate-300">—</span>}
+                    <td className="px-4 py-2 min-w-[80px]">
+                      <InlineCell client={client} field="disc_profile" />
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
-                      {client.zoom_meeting
-                        ? formatDateTime(client.zoom_meeting)
-                        : <span className="text-slate-300">—</span>}
+                    {/* Zoom — read-only (managed by booking flow) */}
+                    <td className="px-4 py-2 text-sm text-slate-500 whitespace-nowrap">
+                      {client.zoom_meeting ? formatDateTime(client.zoom_meeting) : <span className="text-slate-300">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[180px]">
-                      <span className="block truncate" title={client.objective_1 ?? ''}>
-                        {client.objective_1 ?? <span className="text-slate-300">—</span>}
-                      </span>
+                    <td className="px-4 py-2 min-w-[160px] max-w-[200px]">
+                      <InlineCell client={client} field="objective_1" />
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px]">
-                      <span className="block truncate" title={client.objective_2 ?? ''}>
-                        {client.objective_2 ?? <span className="text-slate-300">—</span>}
-                      </span>
+                    <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
+                      <InlineCell client={client} field="objective_2" />
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px]">
-                      <span className="block truncate" title={client.objective_3 ?? ''}>
-                        {client.objective_3 ?? <span className="text-slate-300">—</span>}
-                      </span>
+                    <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
+                      <InlineCell client={client} field="objective_3" />
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px]">
-                      <span className="block truncate" title={client.objective_4 ?? ''}>
-                        {client.objective_4 ?? <span className="text-slate-300">—</span>}
-                      </span>
+                    <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
+                      <InlineCell client={client} field="objective_4" />
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
+                    <td className="px-4 py-2 text-xs text-slate-400 whitespace-nowrap">
                       {formatDateTime(client.created_at)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <button
-                        onClick={() => setEditing(client)}
-                        className="text-xs text-slate-400 hover:text-blue-600 font-medium transition-colors"
-                      >
-                        Edit
-                      </button>
                     </td>
                   </tr>
                 ))
@@ -520,6 +398,11 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <div className="px-4 py-2 border-t border-slate-100 text-xs text-slate-400">
+            Click any cell to edit · Enter to save · Esc to cancel
+          </div>
+        )}
       </div>
     </>
   )
