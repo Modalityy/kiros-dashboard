@@ -22,12 +22,6 @@ const KNOWLEDGE_BASE = {
   provider: 'google',
 }
 
-const TOOL_IDS = [
-  '799b1547-045e-497d-adcf-f718b09543a5',
-  '9ab61b9a-a2c4-4f97-8b78-4058e257d3a2',
-  '44b574dd-5eea-46b1-85f5-9060a62f1125',
-  '84da363d-73c8-4c1b-9b79-c17a5dbd0df8',
-]
 
 const ANALYSIS_PLAN = {
   summaryPlan: {
@@ -175,7 +169,7 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
       name: 'Kiros AI',
       voice: voice,
       model: {
-        model: 'gpt-4o-mini',
+        model: settings['llm_model'] || 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -230,7 +224,7 @@ export async function newCallerConfig(systemPromptDates: string) {
       name: 'Kiros AI',
       voice: voice,
       model: {
-        model: 'gpt-4o-mini',
+        model: settings['llm_model'] || 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

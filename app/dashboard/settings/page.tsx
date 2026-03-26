@@ -12,6 +12,17 @@ const VOICE_DEFAULTS: Record<VoiceKey, string> = {
   voice_stability: '0.5',
 }
 
+const LLM_DEFAULT = 'gpt-4o-mini'
+
+const LLM_MODELS = [
+  { id: 'gpt-4.1-nano',  label: 'GPT-4.1 Nano',  description: 'Fastest · lowest cost' },
+  { id: 'gpt-4.1-mini',  label: 'GPT-4.1 Mini',  description: 'Best value upgrade from 4o-mini' },
+  { id: 'gpt-4.1',       label: 'GPT-4.1',        description: 'High capability · moderate cost' },
+  { id: 'gpt-4o-mini',   label: 'GPT-4o Mini',    description: 'Current default' },
+  { id: 'gpt-4o',        label: 'GPT-4o',         description: 'Most capable GPT-4o' },
+  { id: '__custom__',    label: 'Custom…',         description: 'Enter any model ID manually' },
+]
+
 const SECTIONS: { key: SettingKey; label: string; description: string; rows: number; defaultValue: string }[] = [
   {
     key: 'prompt_returning',
@@ -63,6 +74,14 @@ export default function SettingsPage() {
 
   const getVoice = (key: VoiceKey) => values[key] ?? VOICE_DEFAULTS[key]
 
+  // llm_model helpers
+  const storedModel = values['llm_model'] ?? LLM_DEFAULT
+  const isKnownModel = LLM_MODELS.some(m => m.id === storedModel && m.id !== '__custom__')
+  const selectedPreset = isKnownModel ? storedModel : '__custom__'
+  const customModelValue = isKnownModel ? '' : storedModel
+
+  const getLLMModel = () => values['llm_model'] ?? LLM_DEFAULT
+
   // Warn on navigation away with unsaved changes
   const isPromptDirty = SECTIONS.some(({ key, defaultValue }) => {
     const current = values[key] !== undefined ? values[key] : defaultValue
@@ -72,7 +91,8 @@ export default function SettingsPage() {
   const isVoiceDirty = (Object.keys(VOICE_DEFAULTS) as VoiceKey[]).some(
     (k) => (values[k] ?? VOICE_DEFAULTS[k]) !== (savedValues[k] ?? VOICE_DEFAULTS[k])
   )
-  const isDirty = isPromptDirty || isVoiceDirty
+  const isLLMDirty = getLLMModel() !== (savedValues['llm_model'] ?? LLM_DEFAULT)
+  const isDirty = isPromptDirty || isVoiceDirty || isLLMDirty
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -91,8 +111,9 @@ export default function SettingsPage() {
     try {
       const promptEntries = SECTIONS.map(({ key, defaultValue }) => ({ key, value: getValue(key, defaultValue) }))
       const voiceEntries = (Object.keys(VOICE_DEFAULTS) as VoiceKey[]).map((k) => ({ key: k, value: getVoice(k) }))
+      const llmEntry = { key: 'llm_model', value: getLLMModel() }
       const results = await Promise.all(
-        [...promptEntries, ...voiceEntries].map(({ key, value }) =>
+        [...promptEntries, ...voiceEntries, llmEntry].map(({ key, value }) =>
           fetch('/api/settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -111,6 +132,7 @@ export default function SettingsPage() {
         ;(Object.keys(VOICE_DEFAULTS) as VoiceKey[]).forEach((k) => {
           snapshot[k] = getVoice(k)
         })
+        snapshot['llm_model'] = getLLMModel()
         setSavedValues(snapshot)
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
@@ -149,6 +171,73 @@ export default function SettingsPage() {
           {['{firstName}', '{lastName}', '{email}', '{zoomDisplay}', '{objective_1}', '{objective_2}', '{objective_3}', '{objective_4}'].map(p => (
             <code key={p} className="text-xs bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded font-mono">{p}</code>
           ))}
+        </div>
+      </div>
+
+      {/* LLM model selector */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-slate-900">Language Model</h2>
+          <p className="text-xs text-slate-400 mt-0.5">The LLM that powers Eh-va's conversation. Changes take effect on the next call.</p>
+        </div>
+        <div className="p-6 space-y-4">
+          {/* Preset cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {LLM_MODELS.map((m) => {
+              const active = selectedPreset === m.id
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    if (m.id === '__custom__') {
+                      setValues(v => ({ ...v, llm_model: '' }))
+                    } else {
+                      setValues(v => ({ ...v, llm_model: m.id }))
+                    }
+                  }}
+                  className={`text-left px-4 py-3 rounded-xl border transition-all ${
+                    active
+                      ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className={`text-sm font-semibold ${active ? 'text-blue-700' : 'text-slate-800'}`}>
+                    {m.label}
+                  </div>
+                  <div className={`text-xs mt-0.5 ${active ? 'text-blue-500' : 'text-slate-400'}`}>
+                    {m.description}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Custom model input — shown when custom is selected or stored value is unknown */}
+          {selectedPreset === '__custom__' && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Custom Model ID</label>
+              <input
+                type="text"
+                value={customModelValue}
+                onChange={e => setValues(v => ({ ...v, llm_model: e.target.value }))}
+                placeholder="e.g. gpt-5, gpt-5-mini, o4-mini…"
+                className="w-full max-w-sm text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-slate-400 mt-1">
+                Must match a model ID supported by your VAPI + OpenAI provider.
+                Check <span className="font-medium text-slate-500">docs.vapi.ai</span> for the latest list.
+              </p>
+            </div>
+          )}
+
+          {/* Active model pill */}
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs text-slate-400">Active model:</span>
+            <code className="text-xs font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+              {getLLMModel() || <span className="text-slate-400 italic">not set</span>}
+            </code>
+            {isLLMDirty && <span className="text-xs text-amber-600 font-medium">· unsaved</span>}
+          </div>
         </div>
       </div>
 
