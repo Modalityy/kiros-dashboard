@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 type Client = {
   id: string
@@ -280,9 +281,12 @@ export function ClientsTable({ clients: initial }: { clients: Client[] }) {
                           {client.first_name?.[0] ?? '?'}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-slate-900">
+                          <Link
+                            href={`/dashboard/clients/${client.id}`}
+                            className="text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors"
+                          >
                             {client.first_name} {client.last_name}
-                          </div>
+                          </Link>
                         </div>
                       </div>
                     </td>
