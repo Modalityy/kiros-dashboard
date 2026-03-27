@@ -18,6 +18,11 @@ type Client = {
   updated_at: string
 }
 
+type EditableField =
+  | 'first_name' | 'last_name' | 'email' | 'disc_profile'
+  | 'phone_number' | 'zoom_meeting'
+  | 'objective_1' | 'objective_2' | 'objective_3' | 'objective_4'
+
 function formatDateTime(iso: string | null) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('en-SG', {
@@ -30,6 +35,21 @@ function formatDateTime(iso: string | null) {
   })
 }
 
+// Convert ISO string → datetime-local input value (YYYY-MM-DDTHH:mm in SGT)
+function isoToDatetimeLocal(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  // Offset to SGT (+8)
+  const sgt = new Date(d.getTime() + 8 * 60 * 60 * 1000)
+  return sgt.toISOString().slice(0, 16)
+}
+
+// Convert datetime-local value back to ISO (treating input as SGT)
+function datetimeLocalToIso(local: string): string {
+  if (!local) return ''
+  // local is YYYY-MM-DDTHH:mm, interpret as SGT (+08:00)
+  return new Date(local + ':00+08:00').toISOString()
+}
 
 const EMPTY_ADD_FORM = {
   phone_number: '',
@@ -37,6 +57,7 @@ const EMPTY_ADD_FORM = {
   last_name: '',
   email: '',
   disc_profile: '',
+  zoom_meeting: '',
   objective_1: '',
   objective_2: '',
   objective_3: '',
@@ -59,10 +80,14 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: (c
     setSaving(true)
     setError(null)
     try {
+      const payload = {
+        ...form,
+        zoom_meeting: form.zoom_meeting ? datetimeLocalToIso(form.zoom_meeting) : null,
+      }
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to add client')
@@ -153,6 +178,17 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: (c
           </div>
 
           <div>
+            <label htmlFor="add-zoom" className="block text-xs font-medium text-slate-500 mb-1">Appointment (SGT)</label>
+            <input
+              id="add-zoom"
+              type="datetime-local"
+              value={form.zoom_meeting}
+              onChange={(e) => setForm((f) => ({ ...f, zoom_meeting: e.target.value }))}
+              className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
             <p className="block text-xs font-medium text-slate-500 mb-1">Objectives</p>
             <div className="space-y-2">
               {(['objective_1', 'objective_2', 'objective_3', 'objective_4'] as const).map((field, i) => (
@@ -189,13 +225,95 @@ function AddClientModal({ onClose, onAdded }: { onClose: () => void; onAdded: (c
   )
 }
 
-type EditableField = 'first_name' | 'last_name' | 'email' | 'disc_profile' | 'phone_number' | 'objective_1' | 'objective_2' | 'objective_3' | 'objective_4'
+// ── InlineCell — defined OUTSIDE ClientsTable so React doesn't remount it on every render ──
+
+type InlineCellProps = {
+  clientId: string
+  field: EditableField
+  value: string | null
+  activeCell: { clientId: string; field: EditableField } | null
+  savingCell: { clientId: string; field: EditableField } | null
+  draft: string
+  mono?: boolean
+  onStart: () => void
+  onDraftChange: (v: string) => void
+  onCommit: () => void
+  onCancel: () => void
+}
+
+function InlineCell({
+  clientId, field, value, activeCell, savingCell, draft, mono,
+  onStart, onDraftChange, onCommit, onCancel,
+}: InlineCellProps) {
+  const isActive = activeCell?.clientId === clientId && activeCell.field === field
+  const isSaving = savingCell?.clientId === clientId && savingCell.field === field
+  const isDatetime = field === 'zoom_meeting'
+
+  if (isActive) {
+    if (isDatetime) {
+      return (
+        <input
+          autoFocus
+          type="datetime-local"
+          value={draft}
+          onChange={(e) => onDraftChange(e.target.value)}
+          onBlur={onCommit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); onCommit() }
+            if (e.key === 'Escape') onCancel()
+          }}
+          className="text-sm border border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+        />
+      )
+    }
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => onDraftChange(e.target.value)}
+        onBlur={onCommit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); onCommit() }
+          if (e.key === 'Escape') onCancel()
+        }}
+        className={`w-full min-w-[100px] text-sm border border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white ${mono ? 'font-mono' : ''}`}
+      />
+    )
+  }
+
+  const displayValue = isDatetime ? formatDateTime(value) : (value || '—')
+
+  return (
+    <button
+      onClick={onStart}
+      title="Click to edit"
+      className={`group flex items-center gap-1 w-full text-left text-sm rounded px-1 py-0.5 hover:bg-blue-50 transition-colors`}
+    >
+      {isSaving && (
+        <span className="w-3 h-3 border border-slate-300 border-t-blue-500 rounded-full animate-spin flex-shrink-0" />
+      )}
+      <span className={`block truncate ${value ? 'text-slate-700' : 'text-slate-300'} ${mono ? 'font-mono' : ''}`}>
+        {displayValue}
+      </span>
+      <svg className="w-3 h-3 text-slate-300 group-hover:text-blue-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
+      </svg>
+    </button>
+  )
+}
+
+// ── Main table ────────────────────────────────────────────────────────────────
 
 export function ClientsTable() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState(false)
+  const [activeCell, setActiveCell] = useState<{ clientId: string; field: EditableField } | null>(null)
+  const [draft, setDraft] = useState('')
+  const [savingCell, setSavingCell] = useState<{ clientId: string; field: EditableField } | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Client | null>(null)
 
   useEffect(() => {
     fetch('/api/clients')
@@ -203,13 +321,6 @@ export function ClientsTable() {
       .then(data => { setClients(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
-
-  // Inline editing state
-  const [activeCell, setActiveCell] = useState<{ clientId: string; field: EditableField } | null>(null)
-  const [draft, setDraft] = useState('')
-  const [savingCell, setSavingCell] = useState<{ clientId: string; field: EditableField } | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState<Client | null>(null)
 
   const filtered = clients.filter((c) => {
     const q = search.toLowerCase()
@@ -226,7 +337,11 @@ export function ClientsTable() {
 
   const startEdit = (client: Client, field: EditableField) => {
     setActiveCell({ clientId: client.id, field })
-    setDraft(client[field] ?? '')
+    if (field === 'zoom_meeting') {
+      setDraft(isoToDatetimeLocal(client.zoom_meeting))
+    } else {
+      setDraft(client[field] ?? '')
+    }
   }
 
   const cancelEdit = () => setActiveCell(null)
@@ -242,81 +357,50 @@ export function ClientsTable() {
     }
   }
 
-  const commitEdit = async (clientId: string, field: EditableField, originalValue: string | null) => {
+  const commitEdit = async (client: Client, field: EditableField) => {
     setActiveCell(null)
-    const trimmed = draft.trim()
-    if (trimmed === (originalValue ?? '')) return // no change
-    setSavingCell({ clientId, field })
+
+    // For datetime fields, convert local → ISO before comparing/saving
+    let valueToSave: string | null
+    if (field === 'zoom_meeting') {
+      valueToSave = draft ? datetimeLocalToIso(draft) : null
+      if (valueToSave === client.zoom_meeting) return
+    } else {
+      const trimmed = draft.trim()
+      if (trimmed === (client[field] ?? '')) return
+      valueToSave = trimmed || null
+    }
+
+    setSavingCell({ clientId: client.id, field })
     try {
-      const res = await fetch(`/api/clients/${clientId}`, {
+      const res = await fetch(`/api/clients/${client.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: trimmed }),
+        body: JSON.stringify({ [field]: valueToSave }),
       })
       if (res.ok) {
-        setClients((cs) => cs.map((c) => c.id === clientId ? { ...c, [field]: trimmed || null } : c))
+        setClients((cs) => cs.map((c) => c.id === client.id ? { ...c, [field]: valueToSave } : c))
       }
     } finally {
       setSavingCell(null)
     }
   }
 
-  function InlineCell({ client, field, mono, maxW }: { client: Client; field: EditableField; mono?: boolean; maxW?: string }) {
-    const isActive = activeCell?.clientId === client.id && activeCell.field === field
-    const isSaving = savingCell?.clientId === client.id && savingCell.field === field
-    const value = client[field] ?? ''
-
-    if (isActive) {
-      return (
-        <input
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={() => commitEdit(client.id, field, client[field])}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); commitEdit(client.id, field, client[field]) }
-            if (e.key === 'Escape') cancelEdit()
-          }}
-          className={`w-full min-w-[100px] text-sm border border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white ${mono ? 'font-mono' : ''}`}
-        />
-      )
-    }
-
-    return (
-      <button
-        onClick={() => startEdit(client, field)}
-        title="Click to edit"
-        className={`group flex items-center gap-1 w-full text-left text-sm rounded px-1 py-0.5 hover:bg-blue-50 transition-colors ${maxW ?? ''}`}
-      >
-        {isSaving ? (
-          <span className="w-3 h-3 border border-slate-300 border-t-blue-500 rounded-full animate-spin flex-shrink-0" />
-        ) : null}
-        <span className={`block truncate ${value ? 'text-slate-700' : 'text-slate-300'} ${mono ? 'font-mono' : ''}`}>
-          {value || '—'}
-        </span>
-        <svg className="w-3 h-3 text-slate-300 group-hover:text-blue-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
-        </svg>
-      </button>
-    )
-  }
-
   return (
     <>
       {adding && (
-        <AddClientModal
-          onClose={() => setAdding(false)}
-          onAdded={handleAdded}
-        />
+        <AddClientModal onClose={() => setAdding(false)} onAdded={handleAdded} />
       )}
 
-      {/* Delete confirmation */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setConfirmDelete(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <h2 className="text-base font-semibold text-slate-900 mb-1">Delete client?</h2>
             <p className="text-sm text-slate-500 mb-5">
-              <span className="font-medium text-slate-700">{[confirmDelete.first_name, confirmDelete.last_name].filter(Boolean).join(' ') || confirmDelete.phone_number}</span> will be permanently removed from the database.
+              <span className="font-medium text-slate-700">
+                {[confirmDelete.first_name, confirmDelete.last_name].filter(Boolean).join(' ') || confirmDelete.phone_number}
+              </span>{' '}
+              will be permanently removed from the database.
             </p>
             <div className="flex justify-end gap-3">
               <button onClick={() => setConfirmDelete(null)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900">Cancel</button>
@@ -362,14 +446,8 @@ export function ClientsTable() {
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
               <tr>
-                {[
-                  'Name', 'Phone', 'Email', 'DISC',
-                  'Next Zoom', 'Objective 1', 'Obj 2', 'Obj 3', 'Obj 4', 'Since', '',
-                ].map((col, i) => (
-                  <th
-                    key={i}
-                    className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap"
-                  >
+                {['Name', 'Phone', 'Email', 'DISC', 'Appointment', 'Objective 1', 'Obj 2', 'Obj 3', 'Obj 4', 'Since', ''].map((col, i) => (
+                  <th key={i} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
                     {col}
                   </th>
                 ))}
@@ -393,69 +471,82 @@ export function ClientsTable() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((client) => (
-                  <tr key={client.id} className="hover:bg-slate-50/60 transition-colors">
-                    {/* Name — first + last inline editable */}
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-xs flex-shrink-0">
-                          {client.first_name?.[0] ?? '?'}
+                filtered.map((client) => {
+                  const cellProps = (field: EditableField, extra?: { mono?: boolean }) => ({
+                    clientId: client.id,
+                    field,
+                    value: client[field],
+                    activeCell,
+                    savingCell,
+                    draft,
+                    mono: extra?.mono,
+                    onStart: () => startEdit(client, field),
+                    onDraftChange: setDraft,
+                    onCommit: () => commitEdit(client, field),
+                    onCancel: cancelEdit,
+                  })
+
+                  return (
+                    <tr key={client.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-xs flex-shrink-0">
+                            {client.first_name?.[0] ?? '?'}
+                          </div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <InlineCell {...cellProps('first_name')} />
+                            <span className="text-slate-300 text-xs flex-shrink-0">·</span>
+                            <InlineCell {...cellProps('last_name')} />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <InlineCell client={client} field="first_name" />
-                          <span className="text-slate-300 text-xs flex-shrink-0">·</span>
-                          <InlineCell client={client} field="last_name" />
-                        </div>
-                      </div>
-                    </td>
-                    {/* Phone — editable, normalised on save */}
-                    <td className="px-4 py-2 min-w-[140px]">
-                      <InlineCell client={client} field="phone_number" mono />
-                    </td>
-                    <td className="px-4 py-2 min-w-[160px]">
-                      <InlineCell client={client} field="email" />
-                    </td>
-                    <td className="px-4 py-2 min-w-[80px]">
-                      <InlineCell client={client} field="disc_profile" />
-                    </td>
-                    {/* Zoom — read-only (managed by booking flow) */}
-                    <td className="px-4 py-2 text-sm text-slate-500 whitespace-nowrap">
-                      {client.zoom_meeting ? formatDateTime(client.zoom_meeting) : <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-4 py-2 min-w-[160px] max-w-[200px]">
-                      <InlineCell client={client} field="objective_1" />
-                    </td>
-                    <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
-                      <InlineCell client={client} field="objective_2" />
-                    </td>
-                    <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
-                      <InlineCell client={client} field="objective_3" />
-                    </td>
-                    <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
-                      <InlineCell client={client} field="objective_4" />
-                    </td>
-                    <td className="px-4 py-2 text-xs text-slate-400 whitespace-nowrap">
-                      {formatDateTime(client.created_at)}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <button
-                        onClick={() => setConfirmDelete(client)}
-                        disabled={deletingId === client.id}
-                        className="text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40"
-                        aria-label="Delete client"
-                        title="Delete client"
-                      >
-                        {deletingId === client.id ? (
-                          <span className="w-3.5 h-3.5 border border-slate-300 border-t-red-400 rounded-full animate-spin block" />
-                        ) : (
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-4 py-2 min-w-[140px]">
+                        <InlineCell {...cellProps('phone_number', { mono: true })} />
+                      </td>
+                      <td className="px-4 py-2 min-w-[160px]">
+                        <InlineCell {...cellProps('email')} />
+                      </td>
+                      <td className="px-4 py-2 min-w-[80px]">
+                        <InlineCell {...cellProps('disc_profile')} />
+                      </td>
+                      <td className="px-4 py-2 min-w-[180px]">
+                        <InlineCell {...cellProps('zoom_meeting')} />
+                      </td>
+                      <td className="px-4 py-2 min-w-[160px] max-w-[200px]">
+                        <InlineCell {...cellProps('objective_1')} />
+                      </td>
+                      <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
+                        <InlineCell {...cellProps('objective_2')} />
+                      </td>
+                      <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
+                        <InlineCell {...cellProps('objective_3')} />
+                      </td>
+                      <td className="px-4 py-2 min-w-[140px] max-w-[180px]">
+                        <InlineCell {...cellProps('objective_4')} />
+                      </td>
+                      <td className="px-4 py-2 text-xs text-slate-400 whitespace-nowrap">
+                        {formatDateTime(client.created_at)}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <button
+                          onClick={() => setConfirmDelete(client)}
+                          disabled={deletingId === client.id}
+                          className="text-slate-300 hover:text-red-500 transition-colors disabled:opacity-40"
+                          aria-label="Delete client"
+                          title="Delete client"
+                        >
+                          {deletingId === client.id ? (
+                            <span className="w-3.5 h-3.5 border border-slate-300 border-t-red-400 rounded-full animate-spin block" />
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
