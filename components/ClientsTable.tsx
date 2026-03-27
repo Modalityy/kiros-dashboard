@@ -314,6 +314,7 @@ export function ClientsTable() {
   const [savingCell, setSavingCell] = useState<{ clientId: string; field: EditableField } | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/clients')
@@ -349,9 +350,17 @@ export function ClientsTable() {
   const handleDelete = async (client: Client) => {
     setDeletingId(client.id)
     setConfirmDelete(null)
+    setDeleteError(null)
     try {
-      await fetch(`/api/clients/${client.id}`, { method: 'DELETE' })
-      setClients(cs => cs.filter(c => c.id !== client.id))
+      const res = await fetch(`/api/clients/${client.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setDeleteError(data.error ?? `Delete failed (${res.status})`)
+      } else {
+        setClients(cs => cs.filter(c => c.id !== client.id))
+      }
+    } catch {
+      setDeleteError('Network error — could not delete client.')
     } finally {
       setDeletingId(null)
     }
@@ -419,6 +428,16 @@ export function ClientsTable() {
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
           <span className="w-4 h-4 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
           Loading clients…
+        </div>
+      )}
+
+      {deleteError && (
+        <div className="mb-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {deleteError}
+          <button onClick={() => setDeleteError(null)} className="ml-auto text-red-400 hover:text-red-600">✕</button>
         </div>
       )}
 

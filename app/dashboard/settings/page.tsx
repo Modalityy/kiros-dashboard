@@ -224,7 +224,7 @@ export default function SettingsPage() {
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-sm font-semibold text-slate-900">Language Model</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Calls route directly to OpenAI — VAPI's LLM billing is bypassed.</p>
+            <p className="text-xs text-slate-400 mt-0.5">Selects the OpenAI model used by VAPI's native LLM provider.</p>
           </div>
           <button
             onClick={fetchModels}

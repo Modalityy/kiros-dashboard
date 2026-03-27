@@ -499,12 +499,12 @@ export default function IntegrationsPage() {
             </svg>
           }
           name="OpenAI"
-          description="Language model — calls route directly to OpenAI via your API key, bypassing VAPI's LLM billing."
+          description="Language model — used by VAPI's native LLM provider. Your API key is stored here for model selection."
           badge={hasSetting('openai_api_key') ? 'connected' : 'not_configured'}
           accentColor="bg-slate-700"
           docsUrl="https://platform.openai.com"
           readOnlyRows={[
-            { label: 'Routing', value: 'Direct — not via VAPI' },
+            { label: 'Routing', value: 'Via VAPI native LLM' },
             { label: 'Temperature', value: '0.2' },
           ]}
           editableRows={[
