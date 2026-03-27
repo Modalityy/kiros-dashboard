@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 type EnvStatus = {
   vapiSecretSet: boolean
   vapiSecret: string | null
+  vapiPrivateKeySet: boolean
   vapiWebhookUrl: string | null
   supabaseUrl: string | null
   supabaseKeySet: boolean
@@ -363,10 +364,11 @@ export default function IntegrationsPage() {
           }
           name="VAPI"
           description="AI voice infrastructure — handles inbound calls, assistant routing, transcription, and tool execution."
-          badge={hasSetting('vapi_private_key') ? 'connected' : e.vapiSecretSet ? 'connected' : 'not_configured'}
+          badge={e.vapiPrivateKeySet ? 'connected' : 'not_configured'}
           accentColor="bg-violet-600"
           docsUrl="https://docs.vapi.ai"
           readOnlyRows={[
+            { label: 'Private Key', value: e.vapiPrivateKeySet ? '✓ Set via Vercel env (VAPI_PRIVATE_KEY)' : '✗ Not set — add to Vercel environment variables' },
             { label: 'Webhook URL', value: e.vapiWebhookUrl, mono: true },
             { label: 'Webhook Secret', value: e.vapiSecret, secret: true },
             { label: 'Phone Number', value: '+65 3138 2621' },
@@ -379,7 +381,6 @@ export default function IntegrationsPage() {
             { label: 'Max Duration', value: '640 s · background denoising on · recording on' },
           ]}
           editableRows={[
-            { label: 'Private Key', settingKey: 'vapi_private_key', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (server-side)' },
             { label: 'Public Key', settingKey: 'vapi_public_key', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (client-side SDK)' },
           ]}
         />

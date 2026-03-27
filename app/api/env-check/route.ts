@@ -12,6 +12,7 @@ export async function GET() {
   return NextResponse.json({
     vapiSecretSet: !!process.env.VAPI_WEBHOOK_SECRET,
     vapiSecret: process.env.VAPI_WEBHOOK_SECRET ?? null,
+    vapiPrivateKeySet: !!process.env.VAPI_PRIVATE_KEY,
     vapiWebhookUrl: base ? `${base}/api/vapi/webhook` : null,
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? null,
     supabaseKeySet: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
