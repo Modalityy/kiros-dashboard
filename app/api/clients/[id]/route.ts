@@ -13,6 +13,7 @@ function normalizePhone(phone: string) {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = getSupabase()
   const body = await req.json()
   const allowed = [
     'first_name', 'last_name', 'email', 'disc_profile',
@@ -26,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
-  const { data, error } = await getSupabase()
+  const { data, error } = await supabase
     .from('clients')
     .update(update)
     .eq('id', params.id)
@@ -34,14 +35,60 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // When zoom_meeting is explicitly set, sync to the bookings table so it
+  // appears in the Bookings / Calendar tab.
+  if ('zoom_meeting' in body) {
+    const newTime = update['zoom_meeting'] // ISO string or null
+
+    if (newTime) {
+      // Look for an existing active schedule booking for this client
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('client_id', params.id)
+        .eq('booking_type', 'schedule')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (existing) {
+        // Update the existing booking's time
+        await supabase
+          .from('bookings')
+          .update({ scheduled_at: newTime })
+          .eq('id', existing.id)
+      } else {
+        // Insert a new booking record
+        await supabase.from('bookings').insert({
+          client_id: params.id,
+          booking_type: 'schedule',
+          appointment_type: 'Zoom Meeting',
+          scheduled_at: newTime,
+          email: data.email ?? null,
+          status: 'active',
+        })
+      }
+    }
+    // If zoom_meeting is cleared (null), leave existing bookings as-is —
+    // the bookings page auto-marks past ones as completed.
+  }
+
   return NextResponse.json(data)
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const { error } = await getSupabase()
-    .from('clients')
-    .delete()
-    .eq('id', params.id)
+  const supabase = getSupabase()
+
+  // 1. Remove bookings linked to this client
+  await supabase.from('bookings').delete().eq('client_id', params.id)
+
+  // 2. Nullify client_id on calls so call logs are kept but unlinked
+  await supabase.from('calls').update({ client_id: null }).eq('client_id', params.id)
+
+  // 3. Delete the client
+  const { error } = await supabase.from('clients').delete().eq('id', params.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ deleted: true })
