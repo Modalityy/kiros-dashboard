@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const newTime = update['zoom_meeting'] // ISO string or null
 
     if (newTime) {
-      // Look for an existing active schedule booking for this client
+      // Find the most recent active schedule booking for this client
       const { data: existing } = await supabase
         .from('bookings')
         .select('id')
@@ -51,16 +51,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
-      if (existing) {
-        // Update the existing booking's time
+      if (existing?.id) {
         await supabase
           .from('bookings')
           .update({ scheduled_at: newTime })
           .eq('id', existing.id)
       } else {
-        // Insert a new booking record
         await supabase.from('bookings').insert({
           client_id: params.id,
           booking_type: 'schedule',
@@ -71,8 +69,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         })
       }
     }
-    // If zoom_meeting is cleared (null), leave existing bookings as-is —
-    // the bookings page auto-marks past ones as completed.
   }
 
   return NextResponse.json(data)

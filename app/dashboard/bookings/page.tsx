@@ -1,43 +1,29 @@
-import { createClient } from '@supabase/supabase-js'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { BookingsTabs } from '@/components/BookingsTabs'
 
-export const dynamic = 'force-dynamic'
+export default function BookingsPage() {
+  const [bookings, setBookings] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-async function getBookings() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  useEffect(() => {
+    fetch('/api/bookings')
+      .then(r => r.json())
+      .then(data => { setBookings(Array.isArray(data) ? data : []); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
 
-  // Mark past active bookings as completed
-  await supabase
-    .from('bookings')
-    .update({ status: 'completed' } as any)
-    .eq('status', 'active')
-    .lt('scheduled_at', new Date().toISOString())
-
-  const { data, error } = await supabase
-    .from('bookings')
-    .select(`
-      *,
-      clients (
-        first_name,
-        last_name,
-        phone_number,
-        email
-      )
-    `)
-    .order('scheduled_at', { ascending: true })
-
-  if (error) {
-    console.error('getBookings error:', error)
-    return []
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-3 text-slate-400">
+          <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
+          Loading…
+        </div>
+      </div>
+    )
   }
-  return data ?? []
-}
-
-export default async function BookingsPage() {
-  const bookings = await getBookings()
 
   return (
     <div className="p-8 animate-fade-in-up">
