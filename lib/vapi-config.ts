@@ -6,6 +6,9 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
 }
 
 const TOOLS_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/vapi/tools`
+const TOOLS_HEADERS = process.env.VAPI_WEBHOOK_SECRET
+  ? { 'x-vapi-secret': process.env.VAPI_WEBHOOK_SECRET }
+  : {}
 
 const TRANSCRIBER = {
   model: 'nova-3',
@@ -65,7 +68,7 @@ function buildTools() {
           },
         },
       },
-      server: { url: TOOLS_URL, headers: {} },
+      server: { url: TOOLS_URL, headers: TOOLS_HEADERS },
     },
     {
       type: 'function',
@@ -84,7 +87,7 @@ function buildTools() {
           },
         },
       },
-      server: { url: TOOLS_URL, headers: {} },
+      server: { url: TOOLS_URL, headers: TOOLS_HEADERS },
     },
     {
       type: 'function',
@@ -102,7 +105,7 @@ function buildTools() {
           },
         },
       },
-      server: { url: TOOLS_URL, headers: {} },
+      server: { url: TOOLS_URL, headers: TOOLS_HEADERS },
     },
     {
       type: 'function',
@@ -121,7 +124,7 @@ function buildTools() {
           },
         },
       },
-      server: { url: TOOLS_URL, headers: {} },
+      server: { url: TOOLS_URL, headers: TOOLS_HEADERS },
     },
   ]
 }
