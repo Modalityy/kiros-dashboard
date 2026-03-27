@@ -362,20 +362,25 @@ export default function IntegrationsPage() {
             </svg>
           }
           name="VAPI"
-          description="AI voice infrastructure — handles inbound calls, assistant routing, and tool execution."
-          badge={e.vapiSecretSet ? 'connected' : 'not_configured'}
+          description="AI voice infrastructure — handles inbound calls, assistant routing, transcription, and tool execution."
+          badge={hasSetting('vapi_private_key') ? 'connected' : e.vapiSecretSet ? 'connected' : 'not_configured'}
           accentColor="bg-violet-600"
           docsUrl="https://docs.vapi.ai"
           readOnlyRows={[
             { label: 'Webhook URL', value: e.vapiWebhookUrl, mono: true },
             { label: 'Webhook Secret', value: e.vapiSecret, secret: true },
             { label: 'Phone Number', value: '+65 3138 2621' },
+            { label: 'Assistant', value: 'Eh-va · dynamic config via assistant-request webhook' },
             { label: 'Voice', value: 'ElevenLabs · eleven_multilingual_v2' },
             { label: 'Transcriber', value: 'Deepgram · nova-3' },
-            { label: 'LLM', value: 'OpenAI · gpt-4o-mini' },
+            { label: 'LLM', value: 'OpenAI · gpt-4o-mini (VAPI native)' },
+            { label: 'Knowledge Base', value: '3 files · provider: google' },
+            { label: 'Tools', value: 'book_appointment · reschedule · cancel · update_client_details' },
+            { label: 'Max Duration', value: '640 s · background denoising on · recording on' },
           ]}
           editableRows={[
-            { label: 'API Key', settingKey: 'vapi_api_key', placeholder: 'vapi_••••••••' },
+            { label: 'Private Key', settingKey: 'vapi_private_key', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (server-side)' },
+            { label: 'Public Key', settingKey: 'vapi_public_key', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (client-side SDK)' },
           ]}
         />
 
