@@ -8,8 +8,9 @@ import {
 
 const VAPI_SECRET = process.env.VAPI_WEBHOOK_SECRET
 
-// All VAPI tool calls land here
-// VAPI sends: { message: { type: 'function-call', call: {...}, toolCalls: [...] } }
+// Handles both VAPI tool call formats:
+//   Legacy: { message: { type: 'function-call',  call, toolCalls: [...] } }
+//   Current: { message: { type: 'tool-calls',    call, toolCallList: [...] } }
 
 export async function POST(req: NextRequest) {
   if (VAPI_SECRET) {
@@ -22,17 +23,26 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { message } = body
 
-  if (message?.type !== 'function-call') {
+  const isFunctionCall = message?.type === 'function-call'
+  const isToolCalls    = message?.type === 'tool-calls'
+
+  if (!isFunctionCall && !isToolCalls) {
     return NextResponse.json({ results: [] })
   }
 
-  const toolCalls = message?.toolCalls ?? []
+  // Normalise to a single toolCalls array regardless of format
+  const toolCalls: any[] =
+    message?.toolCallList ??   // current format
+    message?.toolCalls ??      // legacy format
+    []
+
   const vapiCallId: string = message?.call?.id ?? ''
   const phone: string = message?.call?.customer?.number ?? ''
 
   const results = await Promise.all(
     toolCalls.map(async (toolCall: any) => {
-      const { id: toolCallId, function: fn } = toolCall
+      const toolCallId: string = toolCall.id
+      const fn = toolCall.function
       const args = typeof fn.arguments === 'string'
         ? JSON.parse(fn.arguments)
         : fn.arguments
