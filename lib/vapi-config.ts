@@ -147,7 +147,16 @@ export async function returningCallerConfig(client: Client, systemPromptDates: s
   }
 
   const zoomDisplay = client.zoom_meeting
-    ? `${client.zoom_meeting} (YYYY/MM/DD h:mm A)`
+    ? new Date(client.zoom_meeting).toLocaleString('en-SG', {
+        timeZone: 'Asia/Singapore',
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })
     : 'None scheduled'
 
   const templateVars = {
