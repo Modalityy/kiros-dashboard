@@ -5,6 +5,11 @@ import {
   updateClientObjectives,
   createBooking,
 } from '@/lib/supabase'
+import {
+  sendBookingConfirmation,
+  sendRescheduleConfirmation,
+  sendCancellationConfirmation,
+} from '@/lib/email'
 
 const VAPI_SECRET = process.env.VAPI_WEBHOOK_SECRET
 
@@ -89,6 +94,13 @@ async function handleTool(
       email,
     })
 
+    // Send confirmation email (non-fatal)
+    try {
+      await sendBookingConfirmation({ firstName, lastName, email, dateTime })
+    } catch (err) {
+      console.error('Booking confirmation email failed:', err)
+    }
+
     return 'Your zoom meeting has been successfully scheduled.'
   }
 
@@ -105,6 +117,18 @@ async function handleTool(
         scheduled_at: newDateTime,
         email,
       })
+
+      // Send reschedule confirmation email (non-fatal)
+      try {
+        await sendRescheduleConfirmation({
+          firstName: client.first_name ?? '',
+          lastName: client.last_name ?? '',
+          email,
+          newDateTime,
+        })
+      } catch (err) {
+        console.error('Reschedule confirmation email failed:', err)
+      }
     }
 
     return 'Your appointment has been successfully rescheduled.'
@@ -123,6 +147,17 @@ async function handleTool(
         scheduled_at: prevDateTime,
         email,
       })
+
+      // Send cancellation confirmation email (non-fatal)
+      try {
+        await sendCancellationConfirmation({
+          firstName: client.first_name ?? '',
+          lastName: client.last_name ?? '',
+          email,
+        })
+      } catch (err) {
+        console.error('Cancellation confirmation email failed:', err)
+      }
     }
 
     return 'Your appointment has been successfully cancelled.'
