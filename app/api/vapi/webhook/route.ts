@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
     const successEval: string = message?.analysis?.successEvaluation ?? ''
     const endedReason: string = message?.endedReason ?? ''
     const recordingUrl: string | null = message?.artifact?.recordingUrl ?? null
-    const costDollars: number | null = message?.call?.cost ?? null
+    // VAPI sends cost at message.cost or message.call.cost depending on version
+    const costDollars: number | null = message?.cost ?? message?.call?.cost ?? null
     const costCents: number | null = costDollars !== null ? Math.round(costDollars * 100) : null
 
     // Use VAPI's actual timestamps, fall back to our own stored started_at
