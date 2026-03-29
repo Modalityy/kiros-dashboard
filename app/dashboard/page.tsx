@@ -1,61 +1,19 @@
-import { getUpcomingBookings } from '@/lib/supabase'
-import { createClient } from '@supabase/supabase-js'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+'use client'
 
-async function getStats() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
-  const now = Date.now()
-  const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString()
-
-  const [
-    { count: totalCalls },
-    { count: totalClients },
-    { count: callsThisWeek },
-    { count: callsThisMonth },
-    upcomingBookings,
-  ] = await Promise.all([
-    supabase.from('calls').select('*', { count: 'exact', head: true }),
-    supabase.from('clients').select('*', { count: 'exact', head: true }),
-    supabase.from('calls').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
-    supabase.from('calls').select('*', { count: 'exact', head: true }).gte('created_at', monthAgo),
-    getUpcomingBookings(5),
-  ])
-
-  // Success rate + new/returning split from last 50 calls
-  const { data: recentCalls } = await supabase
-    .from('calls')
-    .select('success_eval, caller_type')
-    .order('created_at', { ascending: false })
-    .limit(50)
-
-  const successCount = recentCalls?.filter(
-    (c) => c.success_eval?.toLowerCase().includes('true') || c.success_eval === '1'
-  ).length ?? 0
-  const successRate = recentCalls?.length
-    ? Math.round((successCount / recentCalls.length) * 100)
-    : null
-
-  const returningCount = recentCalls?.filter((c) => c.caller_type === 'returning').length ?? 0
-  const newCount = recentCalls?.filter((c) => c.caller_type === 'new').length ?? 0
-
-  return {
-    totalCalls: totalCalls ?? 0,
-    totalClients: totalClients ?? 0,
-    callsThisWeek: callsThisWeek ?? 0,
-    callsThisMonth: callsThisMonth ?? 0,
-    upcomingBookings,
-    successRate,
-    returningCount,
-    newCount,
-  }
+type Stats = {
+  totalCalls: number
+  totalClients: number
+  callsThisWeek: number
+  callsThisMonth: number
+  returningCount: number
+  newCount: number
+  totalSpendCents: number
+  monthSpendCents: number
+  upcomingBookings: any[]
 }
-
 
 function formatDateTime(iso: string | null) {
   if (!iso) return '—'
@@ -69,14 +27,75 @@ function formatDateTime(iso: string | null) {
   })
 }
 
-export default async function DashboardPage() {
-  const [stats, session] = await Promise.all([getStats(), getServerSession(authOptions)])
+export default function DashboardPage() {
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/dashboard-stats')
+      .then(r => r.json())
+      .then(data => {
+        setStats(data.stats)
+        setUserName(data.userName)
+      })
+  }, [])
+
+  const handleSyncCosts = async () => {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const res = await fetch('/api/vapi/sync-costs', { method: 'POST' })
+      const data = await res.json()
+      setSyncMsg(data.updated > 0 ? `Updated ${data.updated} call${data.updated !== 1 ? 's' : ''}` : 'All costs up to date')
+      // Refresh stats
+      const r2 = await fetch('/api/dashboard-stats')
+      const d2 = await r2.json()
+      setStats(d2.stats)
+    } catch {
+      setSyncMsg('Sync failed')
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncMsg(null), 4000)
+    }
+  }
+
+  if (!stats) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-3 text-slate-400">
+          <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
+          Loading…
+        </div>
+      </div>
+    )
+  }
+
+  const totalSpend = (stats.totalSpendCents / 100).toFixed(2)
+  const monthSpend = (stats.monthSpendCents / 100).toFixed(2)
 
   return (
     <div className="p-8 animate-fade-in-up">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Overview</h1>
-        <p className="text-slate-500 text-sm mt-1">Welcome back, {session?.user?.name?.split(' ')[0] ?? 'back'}. Here's what's happening.</p>
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Overview</h1>
+          <p className="text-slate-500 text-sm mt-1">Welcome back, {userName ?? 'back'}. Here's what's happening.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {syncMsg && <span className="text-xs text-slate-500">{syncMsg}</span>}
+          <button
+            onClick={handleSyncCosts}
+            disabled={syncing}
+            title="Sync call costs from VAPI"
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 border border-slate-200 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <svg className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {syncing ? 'Syncing…' : 'Sync costs'}
+          </button>
+        </div>
       </div>
 
       {/* Stats grid */}
@@ -100,30 +119,29 @@ export default async function DashboardPage() {
           </div>
           <div className="text-3xl font-bold text-slate-900">{stats.totalClients}</div>
           <div className="text-sm font-medium text-slate-600 mt-1">Total Clients</div>
+          <div className="text-xs text-slate-400 mt-0.5">{stats.returningCount} returning · {stats.newCount} new callers</div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg mb-4 bg-purple-50 text-purple-600">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <div className="text-3xl font-bold text-slate-900">{stats.returningCount}</div>
-          <div className="text-sm font-medium text-slate-600 mt-1">Returning Callers</div>
-          <div className="text-xs text-slate-400 mt-0.5">{stats.newCount} new · last 50 calls</div>
+          <div className="text-3xl font-bold text-slate-900">{stats.callsThisMonth}</div>
+          <div className="text-sm font-medium text-slate-600 mt-1">Calls This Month</div>
+          <div className="text-xs text-slate-400 mt-0.5">{stats.callsThisWeek} in the last 7 days</div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg mb-4 bg-amber-50 text-amber-600">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div className="text-3xl font-bold text-slate-900">
-            {stats.successRate !== null ? `${stats.successRate}%` : '—'}
-          </div>
-          <div className="text-sm font-medium text-slate-600 mt-1">Call Success Rate</div>
-          <div className="text-xs text-slate-400 mt-0.5">Last 50 calls</div>
+          <div className="text-3xl font-bold text-slate-900">${totalSpend}</div>
+          <div className="text-sm font-medium text-slate-600 mt-1">Total Spend (VAPI)</div>
+          <div className="text-xs text-slate-400 mt-0.5">${monthSpend} this month</div>
         </div>
       </div>
 
@@ -131,7 +149,7 @@ export default async function DashboardPage() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-900">Upcoming Zoom Sessions</h2>
-          <a href="/dashboard/bookings" className="text-sm text-blue-600 hover:underline font-medium">View all →</a>
+          <Link href="/dashboard/bookings" className="text-sm text-blue-600 hover:underline font-medium">View all →</Link>
         </div>
         {stats.upcomingBookings.length === 0 ? (
           <div className="px-6 py-10 text-center text-slate-400 text-sm">No upcoming bookings.</div>
@@ -151,11 +169,9 @@ export default async function DashboardPage() {
                 <div className="text-right">
                   <div className="text-sm font-medium text-slate-700">{formatDateTime(booking.scheduled_at)}</div>
                   <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${
-                    booking.booking_type === 'schedule'
-                      ? 'bg-green-100 text-green-700'
-                      : booking.booking_type === 'reschedule'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-red-100 text-red-700'
+                    booking.booking_type === 'schedule' ? 'bg-green-100 text-green-700'
+                    : booking.booking_type === 'reschedule' ? 'bg-amber-100 text-amber-700'
+                    : 'bg-red-100 text-red-700'
                   }`}>
                     {booking.booking_type}
                   </span>
