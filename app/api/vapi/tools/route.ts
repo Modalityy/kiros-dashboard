@@ -4,6 +4,7 @@ import {
   upsertClient,
   updateClientObjectives,
   createBooking,
+  cancelActiveBookings,
 } from '@/lib/supabase'
 import {
   sendBookingConfirmation,
@@ -110,6 +111,7 @@ async function handleTool(
 
     const client = await getClientByPhone(phone)
     if (client) {
+      await cancelActiveBookings(client.id)
       await upsertClient({ phone_number: client.phone_number, zoom_meeting: newDateTime })
       await createBooking({
         client_id: client.id,
@@ -140,6 +142,7 @@ async function handleTool(
 
     const client = await getClientByPhone(phone)
     if (client) {
+      await cancelActiveBookings(client.id)
       await upsertClient({ phone_number: client.phone_number, zoom_meeting: '' })
       await createBooking({
         client_id: client.id,

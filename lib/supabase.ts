@@ -145,6 +145,14 @@ export async function createBooking(data: {
   return booking
 }
 
+export async function cancelActiveBookings(clientId: string): Promise<void> {
+  await supabase
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('client_id', clientId)
+    .eq('status', 'active')
+}
+
 // ── Settings helpers ───────────────────────────────────────────────────────
 
 export async function getAllSettings(): Promise<Record<string, string>> {
