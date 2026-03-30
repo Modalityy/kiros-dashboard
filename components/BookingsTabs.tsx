@@ -7,6 +7,7 @@ type Booking = {
   booking_type: string
   scheduled_at: string
   status: string
+  email: string | null
   clients: {
     first_name: string | null
     last_name: string | null
@@ -39,6 +40,12 @@ function formatTime(iso: string) {
   })
 }
 
+function isoToDatetimeLocal(iso: string) {
+  const d = new Date(iso)
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset() + 8 * 60)
+  return d.toISOString().slice(0, 16)
+}
+
 function TypeBadge({ type }: { type: string }) {
   const styles: Record<string, string> = {
     schedule: 'bg-green-100 text-green-700',
@@ -52,59 +59,76 @@ function TypeBadge({ type }: { type: string }) {
   )
 }
 
-function BookingDetailModal({ booking, onClose }: { booking: Booking; onClose: () => void }) {
+function EditBookingModal({
+  booking,
+  onClose,
+  onSaved,
+}: {
+  booking: Booking
+  onClose: () => void
+  onSaved: (id: string, newIso: string) => void
+}) {
+  const [value, setValue] = useState(isoToDatetimeLocal(booking.scheduled_at))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSave() {
+    setSaving(true)
+    setError('')
+    const iso = new Date(value + ':00+08:00').toISOString()
+    const res = await fetch(`/api/bookings/${booking.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduled_at: iso }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      onSaved(booking.id, iso)
+      onClose()
+    } else {
+      setError('Failed to save — please try again.')
+    }
+  }
+
   return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-900">Booking Detail</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors"
-            aria-label="Close"
-          >
+          <h2 className="text-base font-semibold text-slate-900">Edit Appointment</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="px-6 py-5 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
-              {booking.clients?.first_name?.[0] ?? '?'}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                {booking.clients?.first_name} {booking.clients?.last_name}
-              </p>
-              <p className="text-xs text-slate-400">{booking.clients?.phone_number ?? '—'}</p>
-            </div>
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-1">
+              {booking.clients?.first_name} {booking.clients?.last_name}
+            </p>
+            <p className="text-xs text-slate-400">{booking.clients?.phone_number}</p>
           </div>
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-slate-400 mb-0.5">Email</p>
-              <p className="text-sm text-slate-700 break-all">{booking.clients?.email ?? '—'}</p>
-            </div>
-            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-slate-400 mb-0.5">Type</p>
-              <TypeBadge type={booking.booking_type} />
-            </div>
-            <div className="bg-slate-50 rounded-lg px-3 py-2.5 col-span-2">
-              <p className="text-xs text-slate-400 mb-0.5">Scheduled</p>
-              <p className="text-sm text-slate-700">{formatDateTime(booking.scheduled_at)}</p>
-            </div>
-            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-slate-400 mb-0.5">Status</p>
-              <p className="text-sm text-slate-700 capitalize">{booking.status}</p>
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">New date & time (SGT)</label>
+            <input
+              type="datetime-local"
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2 justify-end">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
           </div>
         </div>
       </div>
@@ -114,11 +138,68 @@ function BookingDetailModal({ booking, onClose }: { booking: Booking; onClose: (
 
 // ── List Tab ──────────────────────────────────────────────────────────────────
 
-function ListView({ bookings }: { bookings: Booking[] }) {
-  const upcoming = bookings.filter((b) => b.booking_type !== 'cancel' && new Date(b.scheduled_at) > new Date())
-  const past = bookings.filter((b) => b.booking_type === 'cancel' || new Date(b.scheduled_at) <= new Date())
+function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () => void }) {
+  const now = new Date()
+  const upcoming = bookings.filter(b =>
+    b.booking_type !== 'cancel' &&
+    b.status !== 'cancelled' &&
+    b.status !== 'completed' &&
+    new Date(b.scheduled_at) > now
+  )
+  const past = bookings.filter(b =>
+    b.booking_type === 'cancel' ||
+    b.status === 'cancelled' ||
+    b.status === 'completed' ||
+    new Date(b.scheduled_at) <= now
+  )
 
-  const TableSection = ({ title, rows, emptyText }: { title: string; rows: Booking[]; emptyText: string }) => (
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
+  const [localBookings, setLocalBookings] = useState(bookings)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+
+  // sync when parent bookings prop changes
+  useMemo(() => setLocalBookings(bookings), [bookings])
+
+  const upcomingLocal = localBookings.filter(b =>
+    b.booking_type !== 'cancel' &&
+    b.status !== 'cancelled' &&
+    b.status !== 'completed' &&
+    new Date(b.scheduled_at) > now
+  )
+  const pastLocal = localBookings.filter(b =>
+    b.booking_type === 'cancel' ||
+    b.status === 'cancelled' ||
+    b.status === 'completed' ||
+    new Date(b.scheduled_at) <= now
+  )
+
+  function handleSaved(id: string, newIso: string) {
+    setLocalBookings(prev => prev.map(b => b.id === id ? { ...b, scheduled_at: newIso } : b))
+    onRefresh()
+  }
+
+  async function handleCancel(id: string) {
+    if (!confirm('Cancel this appointment?')) return
+    setCancellingId(id)
+    const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' })
+    setCancellingId(null)
+    if (res.ok) {
+      setLocalBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'cancelled' } : b))
+      onRefresh()
+    }
+  }
+
+  const TableSection = ({
+    title,
+    rows,
+    emptyText,
+    showActions,
+  }: {
+    title: string
+    rows: Booking[]
+    emptyText: string
+    showActions?: boolean
+  }) => (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
       <div className="px-6 py-4 border-b border-slate-100">
         <h2 className="text-base font-semibold text-slate-900">{title}</h2>
@@ -127,7 +208,7 @@ function ListView({ bookings }: { bookings: Booking[] }) {
         <table className="min-w-full divide-y divide-slate-100">
           <thead className="bg-slate-50">
             <tr>
-              {['Client', 'Phone', 'Email', 'Scheduled', 'Type'].map((col) => (
+              {['Client', 'Phone', 'Email', 'Scheduled', 'Type', ...(showActions ? ['Actions'] : [])].map(col => (
                 <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
                   {col}
                 </th>
@@ -137,10 +218,10 @@ function ListView({ bookings }: { bookings: Booking[] }) {
           <tbody className="divide-y divide-slate-50">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-sm text-slate-400">{emptyText}</td>
+                <td colSpan={showActions ? 6 : 5} className="py-12 text-center text-sm text-slate-400">{emptyText}</td>
               </tr>
             ) : (
-              rows.map((b) => (
+              rows.map(b => (
                 <tr key={b.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-3">
@@ -153,9 +234,28 @@ function ListView({ bookings }: { bookings: Booking[] }) {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600 font-mono whitespace-nowrap">{b.clients?.phone_number}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">{b.clients?.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">{b.email ?? b.clients?.email ?? '—'}</td>
                   <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">{formatDateTime(b.scheduled_at)}</td>
                   <td className="px-4 py-3 whitespace-nowrap"><TypeBadge type={b.booking_type} /></td>
+                  {showActions && (
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setEditingBooking(b)}
+                          className="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleCancel(b.id)}
+                          disabled={cancellingId === b.id}
+                          className="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 transition-colors"
+                        >
+                          {cancellingId === b.id ? '…' : 'Cancel'}
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -167,8 +267,15 @@ function ListView({ bookings }: { bookings: Booking[] }) {
 
   return (
     <>
-      <TableSection title="Upcoming Sessions" rows={upcoming} emptyText="No upcoming sessions." />
-      <TableSection title="Past & Cancelled" rows={past} emptyText="No past or cancelled sessions." />
+      {editingBooking && (
+        <EditBookingModal
+          booking={editingBooking}
+          onClose={() => setEditingBooking(null)}
+          onSaved={handleSaved}
+        />
+      )}
+      <TableSection title="Upcoming Sessions" rows={upcomingLocal} emptyText="No upcoming sessions." showActions />
+      <TableSection title="Past & Cancelled" rows={pastLocal} emptyText="No past or cancelled sessions." />
     </>
   )
 }
@@ -182,10 +289,13 @@ const BOOKING_COLORS: Record<string, string> = {
 }
 
 function getLocalSGTDate(iso: string) {
-  // Convert ISO string to SGT YYYY-MM-DD key
   const d = new Date(iso)
   const sgt = new Date(d.getTime() + 8 * 60 * 60 * 1000)
   return sgt.toISOString().slice(0, 10)
+}
+
+function activeBookings(bookings: Booking[]) {
+  return bookings.filter(b => b.booking_type !== 'cancel' && b.status !== 'cancelled')
 }
 
 function MonthView({ bookings, selected, onSelect }: {
@@ -199,17 +309,15 @@ function MonthView({ bookings, selected, onSelect }: {
   })
 
   const { year, month } = cursor
-
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  const startPad = firstDay.getDay() // 0=Sun
+  const startPad = firstDay.getDay()
   const totalCells = Math.ceil((startPad + lastDay.getDate()) / 7) * 7
-
   const monthLabel = firstDay.toLocaleString('en-SG', { month: 'long', year: 'numeric' })
 
   const bookingsByDate = useMemo(() => {
     const map: Record<string, Booking[]> = {}
-    bookings.forEach((b) => {
+    activeBookings(bookings).forEach(b => {
       const key = getLocalSGTDate(b.scheduled_at)
       if (!map[key]) map[key] = []
       map[key].push(b)
@@ -218,61 +326,42 @@ function MonthView({ bookings, selected, onSelect }: {
   }, [bookings])
 
   const todayKey = getLocalSGTDate(new Date().toISOString())
-
   const prev = () => setCursor(c => c.month === 0 ? { year: c.year - 1, month: 11 } : { year: c.year, month: c.month - 1 })
   const next = () => setCursor(c => c.month === 11 ? { year: c.year + 1, month: 0 } : { year: c.year, month: c.month + 1 })
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
         <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
         <h3 className="text-sm font-semibold text-slate-800">{monthLabel}</h3>
         <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
-
-      {/* Day labels */}
       <div className="grid grid-cols-7 border-b border-slate-100">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-          <div key={d} className="py-2 text-center text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            {d}
-          </div>
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+          <div key={d} className="py-2 text-center text-xs font-semibold text-slate-400 uppercase tracking-wide">{d}</div>
         ))}
       </div>
-
-      {/* Grid */}
       <div className="grid grid-cols-7 divide-x divide-y divide-slate-100">
         {Array.from({ length: totalCells }).map((_, i) => {
           const dayNum = i - startPad + 1
           const isValid = dayNum >= 1 && dayNum <= lastDay.getDate()
-          const dateKey = isValid
-            ? `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
-            : ''
+          const dateKey = isValid ? `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}` : ''
           const dayBookings = isValid ? (bookingsByDate[dateKey] ?? []) : []
           const isToday = dateKey === todayKey
 
           return (
-            <div
-              key={i}
-              className={`min-h-[90px] p-1.5 ${!isValid ? 'bg-slate-50/60' : 'bg-white'}`}
-            >
+            <div key={i} className={`min-h-[90px] p-1.5 ${!isValid ? 'bg-slate-50/60' : 'bg-white'}`}>
               {isValid && (
                 <>
-                  <div className={`w-6 h-6 flex items-center justify-center text-xs font-medium rounded-full mb-1 ${
-                    isToday ? 'bg-blue-600 text-white' : 'text-slate-500'
-                  }`}>
+                  <div className={`w-6 h-6 flex items-center justify-center text-xs font-medium rounded-full mb-1 ${isToday ? 'bg-blue-600 text-white' : 'text-slate-500'}`}>
                     {dayNum}
                   </div>
                   <div className="space-y-0.5">
-                    {dayBookings.slice(0, 3).map((b) => (
+                    {dayBookings.slice(0, 3).map(b => (
                       <button
                         key={b.id}
                         onClick={() => onSelect(b)}
@@ -281,9 +370,7 @@ function MonthView({ bookings, selected, onSelect }: {
                         {formatTime(b.scheduled_at)} {b.clients?.first_name ?? 'Unknown'}
                       </button>
                     ))}
-                    {dayBookings.length > 3 && (
-                      <p className="text-[10px] text-slate-400 pl-1">+{dayBookings.length - 3} more</p>
-                    )}
+                    {dayBookings.length > 3 && <p className="text-[10px] text-slate-400 pl-1">+{dayBookings.length - 3} more</p>}
                   </div>
                 </>
               )}
@@ -316,7 +403,7 @@ function WeekView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: B
 
   const bookingsByDate = useMemo(() => {
     const map: Record<string, Booking[]> = {}
-    bookings.forEach((b) => {
+    activeBookings(bookings).forEach(b => {
       const key = getLocalSGTDate(b.scheduled_at)
       if (!map[key]) map[key] = []
       map[key].push(b)
@@ -325,7 +412,6 @@ function WeekView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: B
   }, [bookings])
 
   const rangeLabel = `${days[0].toLocaleDateString('en-SG', { month: 'short', day: 'numeric' })} – ${days[6].toLocaleDateString('en-SG', { month: 'short', day: 'numeric', year: 'numeric' })}`
-
   const prev = () => setWeekStart(w => { const d = new Date(w); d.setDate(d.getDate() - 7); return d })
   const next = () => setWeekStart(w => { const d = new Date(w); d.setDate(d.getDate() + 7); return d })
 
@@ -333,19 +419,15 @@ function WeekView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: B
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
         <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
         <h3 className="text-sm font-semibold text-slate-800">{rangeLabel}</h3>
         <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
       <div className="grid grid-cols-7 divide-x border-b border-slate-100">
-        {days.map((d) => {
+        {days.map(d => {
           const key = d.toISOString().slice(0, 10)
           const isToday = key === todayKey
           return (
@@ -357,12 +439,12 @@ function WeekView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: B
         })}
       </div>
       <div className="grid grid-cols-7 divide-x min-h-[200px]">
-        {days.map((d) => {
+        {days.map(d => {
           const key = d.toISOString().slice(0, 10)
           const dayBookings = bookingsByDate[key] ?? []
           return (
             <div key={key} className="p-1.5 space-y-1">
-              {dayBookings.map((b) => (
+              {dayBookings.map(b => (
                 <button
                   key={b.id}
                   onClick={() => onSelect(b)}
@@ -381,23 +463,20 @@ function WeekView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: B
 }
 
 function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Booking) => void }) {
-  const [cursor, setCursor] = useState(() => {
-    const now = new Date()
-    return new Date(now.getTime() + 8 * 60 * 60 * 1000)
-  })
+  const [cursor, setCursor] = useState(() => new Date(new Date().getTime() + 8 * 60 * 60 * 1000))
 
   const dateKey = cursor.toISOString().slice(0, 10)
   const todayKey = getLocalSGTDate(new Date().toISOString())
 
   const dayBookings = useMemo(() =>
-    bookings.filter((b) => getLocalSGTDate(b.scheduled_at) === dateKey)
+    activeBookings(bookings)
+      .filter(b => getLocalSGTDate(b.scheduled_at) === dateKey)
       .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)),
     [bookings, dateKey]
   )
 
   const dayLabel = cursor.toLocaleDateString('en-SG', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   const isToday = dateKey === todayKey
-
   const prev = () => setCursor(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n })
   const next = () => setCursor(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n })
 
@@ -405,18 +484,14 @@ function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Bo
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
         <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
         <div className="text-center">
           <h3 className={`text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-slate-800'}`}>{dayLabel}</h3>
           {isToday && <p className="text-xs text-blue-400">Today</p>}
         </div>
         <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
       <div className="p-4 min-h-[200px]">
@@ -429,7 +504,7 @@ function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Bo
           </div>
         ) : (
           <div className="space-y-3">
-            {dayBookings.map((b) => (
+            {dayBookings.map(b => (
               <button
                 key={b.id}
                 onClick={() => onSelect(b)}
@@ -439,7 +514,7 @@ function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Bo
                   <span className="text-sm font-semibold">{b.clients?.first_name} {b.clients?.last_name}</span>
                   <span className="text-xs font-mono">{formatTime(b.scheduled_at)}</span>
                 </div>
-                <div className="text-xs mt-0.5 opacity-70">{b.clients?.phone_number} · {b.clients?.email ?? '—'}</div>
+                <div className="text-xs mt-0.5 opacity-70">{b.clients?.phone_number} · {b.email ?? b.clients?.email ?? '—'}</div>
               </button>
             ))}
           </div>
@@ -451,20 +526,27 @@ function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Bo
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function BookingsTabs({ bookings }: { bookings: Booking[] }) {
+export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () => void }) {
   const [tab, setTab] = useState<Tab>('list')
   const [view, setView] = useState<View>('month')
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
 
-  const upcoming = bookings.filter((b) => b.booking_type !== 'cancel' && new Date(b.scheduled_at) > new Date())
-  const past = bookings.filter((b) => b.booking_type === 'cancel' || new Date(b.scheduled_at) <= new Date())
+  const now = new Date()
+  const upcoming = bookings.filter(b =>
+    b.booking_type !== 'cancel' &&
+    b.status !== 'cancelled' &&
+    b.status !== 'completed' &&
+    new Date(b.scheduled_at) > now
+  )
+  const past = bookings.filter(b =>
+    b.booking_type === 'cancel' ||
+    b.status === 'cancelled' ||
+    b.status === 'completed' ||
+    new Date(b.scheduled_at) <= now
+  )
 
   return (
     <>
-      {selectedBooking && (
-        <BookingDetailModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} />
-      )}
-
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Bookings</h1>
@@ -472,31 +554,25 @@ export function BookingsTabs({ bookings }: { bookings: Booking[] }) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Tab switcher */}
           <div className="flex bg-slate-100 rounded-lg p-1">
             {([['list', 'List'], ['calendar', 'Calendar']] as [Tab, string][]).map(([t, label]) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                  tab === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                }`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${tab === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 {label}
               </button>
             ))}
           </div>
 
-          {/* Calendar view switcher */}
           {tab === 'calendar' && (
             <div className="flex bg-slate-100 rounded-lg p-1">
               {([['month', 'Month'], ['week', 'Week'], ['day', 'Day']] as [View, string][]).map(([v, label]) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                    view === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                  }`}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${view === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                 >
                   {label}
                 </button>
@@ -506,7 +582,7 @@ export function BookingsTabs({ bookings }: { bookings: Booking[] }) {
         </div>
       </div>
 
-      {tab === 'list' && <ListView bookings={bookings} />}
+      {tab === 'list' && <ListView bookings={bookings} onRefresh={onRefresh} />}
       {tab === 'calendar' && view === 'month' && (
         <MonthView bookings={bookings} selected={selectedBooking} onSelect={setSelectedBooking} />
       )}

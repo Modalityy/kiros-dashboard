@@ -112,20 +112,21 @@ async function handleTool(
     const client = await getClientByPhone(phone)
     if (!client) return 'We could not find your details. Please call back and we will assist you.'
 
+    const resolvedEmail = email || client.email || ''
     await cancelActiveBookings(client.id)
     await upsertClient({ phone_number: client.phone_number, zoom_meeting: newDateTime })
     await createBooking({
       client_id: client.id,
       booking_type: 'reschedule',
       scheduled_at: newDateTime,
-      email,
+      email: resolvedEmail,
     })
 
     try {
       await sendRescheduleConfirmation({
         firstName: client.first_name ?? '',
         lastName: client.last_name ?? '',
-        email,
+        email: resolvedEmail,
         newDateTime,
       })
     } catch (err) {
@@ -142,20 +143,21 @@ async function handleTool(
     const client = await getClientByPhone(phone)
     if (!client) return 'We could not find your details. Please call back and we will assist you.'
 
+    const resolvedEmail = email || client.email || ''
     await cancelActiveBookings(client.id)
     await upsertClient({ phone_number: client.phone_number, zoom_meeting: '' })
     await createBooking({
       client_id: client.id,
       booking_type: 'cancel',
       scheduled_at: prevDateTime,
-      email,
+      email: resolvedEmail,
     })
 
     try {
       await sendCancellationConfirmation({
         firstName: client.first_name ?? '',
         lastName: client.last_name ?? '',
-        email,
+        email: resolvedEmail,
       })
     } catch (err) {
       console.error('Cancellation confirmation email failed:', err)

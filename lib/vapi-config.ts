@@ -74,12 +74,12 @@ function buildTools() {
       type: 'function',
       function: {
         name: 'reschedule_appointment',
-        description: 'Reschedules an existing appointment.',
+        description: 'Reschedules an existing appointment. Use the email from the caller profile — do NOT ask the caller for it.',
         parameters: {
           type: 'object',
-          required: ['email', 'newDateTime', 'bookingType', 'appointmentType'],
+          required: ['newDateTime', 'bookingType', 'appointmentType'],
           properties: {
-            email:           { type: 'string' },
+            email:           { type: 'string', description: 'Email from caller profile — do not ask caller to provide this.' },
             newDateTime:     { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore time)' },
             prevDateTime:    { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00' },
             bookingType:     { type: 'string', enum: ['reschedule'] },
@@ -93,12 +93,12 @@ function buildTools() {
       type: 'function',
       function: {
         name: 'cancel_appointment',
-        description: 'Cancels an existing appointment.',
+        description: 'Cancels an existing appointment. Use the email from the caller profile — do NOT ask the caller for it.',
         parameters: {
           type: 'object',
-          required: ['email', 'bookingType', 'appointmentType'],
+          required: ['bookingType', 'appointmentType'],
           properties: {
-            email:           { type: 'string' },
+            email:           { type: 'string', description: 'Email from caller profile — do not ask caller to provide this.' },
             prevDateTime:    { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00' },
             bookingType:     { type: 'string', enum: ['cancel'] },
             appointmentType: { type: 'string', enum: ['Zoom Meeting'] },
