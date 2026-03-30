@@ -89,10 +89,11 @@ export default function CalendarPage() {
   const monthName = new Date(viewYear, viewMonth).toLocaleString('en-SG', { month: 'long', year: 'numeric' })
   const todaySGT = toSGT(new Date().toISOString())
 
-  // Map bookings to their SGT date
+  // Map bookings to their SGT date — exclude cancelled records and cancel-type entries
   const bookingsByDay: Record<number, Booking[]> = {}
   for (const b of bookings) {
     if (!b.scheduled_at) continue
+    if (b.booking_type === 'cancel' || b.status === 'cancelled') continue
     const d = toSGT(b.scheduled_at)
     if (d.getFullYear() === viewYear && d.getMonth() === viewMonth) {
       const day = d.getDate()

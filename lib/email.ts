@@ -10,21 +10,27 @@ const transporter = nodemailer.createTransport({
 
 const FROM = `Daniel Wong's Office <${process.env.GMAIL_USER}>`
 
-function formatSGT(iso: string): string {
-  return new Date(iso).toLocaleString('en-SG', {
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-SG', {
     timeZone: 'Asia/Singapore',
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+  })
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-SG', {
+    timeZone: 'Asia/Singapore',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: true,
   })
 }
 
 export async function sendBookingConfirmation({
   firstName,
-  lastName,
   email,
   dateTime,
 }: {
@@ -33,26 +39,28 @@ export async function sendBookingConfirmation({
   email: string
   dateTime: string
 }) {
-  const displayTime = formatSGT(dateTime)
-
   await transporter.sendMail({
     from: FROM,
     to: email,
-
     subject: 'Your Zoom Session is Confirmed',
     html: `
-      <p>Hi ${firstName},</p>
-      <p>Your consultation with Daniel Wong has been scheduled for:</p>
-      <p><strong>${displayTime} (Singapore Time)</strong></p>
-      <p>A Zoom link will be shared closer to the date. If you need to reschedule or cancel, please call us back.</p>
-      <p>Best regards,<br/>Daniel Wong's Office</p>
+      <p>Dear ${firstName},</p>
+
+      <p>This is to confirm that our Zoom meeting has been successfully scheduled.</p>
+
+      <p><strong>Meeting Details:</strong><br>
+      <b>Date</b>: ${formatDate(dateTime)}<br>
+      <b>Time</b>: ${formatTime(dateTime)} (Singapore Time)</p>
+
+      <p>A Zoom link will be sent to you 30 minutes before the scheduled time. If you need to reschedule or have any questions, don't hesitate to reach us at 9173 3883.</p>
+
+      <p>Warm regards,<br/>Daniel Wong's Office</p>
     `,
   })
 }
 
 export async function sendRescheduleConfirmation({
   firstName,
-  lastName,
   email,
   newDateTime,
 }: {
@@ -61,26 +69,28 @@ export async function sendRescheduleConfirmation({
   email: string
   newDateTime: string
 }) {
-  const displayTime = formatSGT(newDateTime)
-
   await transporter.sendMail({
     from: FROM,
     to: email,
-
     subject: 'Your Zoom Session Has Been Rescheduled',
     html: `
-      <p>Hi ${firstName},</p>
-      <p>Your consultation with Daniel Wong has been rescheduled to:</p>
-      <p><strong>${displayTime} (Singapore Time)</strong></p>
-      <p>If you need to make further changes, please call us back.</p>
-      <p>Best regards,<br/>Daniel Wong's Office</p>
+      <p>Dear ${firstName},</p>
+
+      <p>This is to confirm that your Zoom meeting has been successfully rescheduled.</p>
+
+      <p><strong>Updated Meeting Details:</strong><br>
+      <b>Date</b>: ${formatDate(newDateTime)}<br>
+      <b>Time</b>: ${formatTime(newDateTime)} (Singapore Time)</p>
+
+      <p>A Zoom link will be sent to you 30 minutes before the scheduled time. If you need to make further changes or have any questions, don't hesitate to reach us at 9173 3883.</p>
+
+      <p>Warm regards,<br/>Daniel Wong's Office</p>
     `,
   })
 }
 
 export async function sendCancellationConfirmation({
   firstName,
-  lastName,
   email,
 }: {
   firstName: string
@@ -90,13 +100,15 @@ export async function sendCancellationConfirmation({
   await transporter.sendMail({
     from: FROM,
     to: email,
-
     subject: 'Your Zoom Session Has Been Cancelled',
     html: `
-      <p>Hi ${firstName},</p>
-      <p>Your upcoming consultation with Daniel Wong has been cancelled as requested.</p>
-      <p>If you'd like to book again in the future, please give us a call.</p>
-      <p>Best regards,<br/>Daniel Wong's Office</p>
+      <p>Dear ${firstName},</p>
+
+      <p>This is to confirm that your upcoming Zoom meeting has been successfully cancelled as requested.</p>
+
+      <p>If you'd like to reschedule or book a new session in the future, please don't hesitate to give us a call at 9173 3883. We'd be happy to assist.</p>
+
+      <p>Warm regards,<br/>Daniel Wong's Office</p>
     `,
   })
 }
