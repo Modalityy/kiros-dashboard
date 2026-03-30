@@ -37,6 +37,7 @@ async function getStats() {
     { data: recentCalls },
     { data: costData },
     { data: monthCostData },
+    { data: creditsSetting },
   ] = await Promise.all([
     supabase.from('calls').select('*', { count: 'exact', head: true }),
     supabase.from('clients').select('*', { count: 'exact', head: true }),
@@ -46,6 +47,7 @@ async function getStats() {
     supabase.from('calls').select('caller_type').order('created_at', { ascending: false }).limit(50),
     supabase.from('calls').select('cost_cents'),
     supabase.from('calls').select('cost_cents').gte('created_at', monthAgo),
+    supabase.from('settings').select('value').eq('key', 'vapi_credits_purchased').maybeSingle(),
   ])
 
   const returningCount = recentCalls?.filter(c => c.caller_type === 'returning').length ?? 0
@@ -53,6 +55,8 @@ async function getStats() {
 
   const totalSpendCents = costData?.reduce((sum, r) => sum + (r.cost_cents ?? 0), 0) ?? 0
   const monthSpendCents = monthCostData?.reduce((sum, r) => sum + (r.cost_cents ?? 0), 0) ?? 0
+  const creditsPurchasedCents = Math.round(parseFloat((creditsSetting as any)?.value ?? '0') * 100)
+  const creditsRemainingCents = creditsPurchasedCents - totalSpendCents
 
   return {
     totalCalls: totalCalls ?? 0,
@@ -63,6 +67,8 @@ async function getStats() {
     newCount,
     totalSpendCents,
     monthSpendCents,
+    creditsPurchasedCents,
+    creditsRemainingCents,
     upcomingBookings,
   }
 }

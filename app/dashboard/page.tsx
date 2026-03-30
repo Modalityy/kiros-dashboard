@@ -12,6 +12,8 @@ type Stats = {
   newCount: number
   totalSpendCents: number
   monthSpendCents: number
+  creditsPurchasedCents: number
+  creditsRemainingCents: number
   upcomingBookings: any[]
 }
 
@@ -32,6 +34,8 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const [topUpInput, setTopUpInput] = useState('')
+  const [savingTopUp, setSavingTopUp] = useState(false)
 
   useEffect(() => {
     fetch('/api/dashboard-stats')
@@ -74,6 +78,25 @@ export default function DashboardPage() {
 
   const totalSpend = (stats.totalSpendCents / 100).toFixed(2)
   const monthSpend = (stats.monthSpendCents / 100).toFixed(2)
+  const creditsRemaining = (stats.creditsRemainingCents / 100).toFixed(2)
+  const creditsPurchased = (stats.creditsPurchasedCents / 100).toFixed(2)
+  const creditsLow = stats.creditsPurchasedCents > 0 && stats.creditsRemainingCents / stats.creditsPurchasedCents < 0.2
+
+  async function handleTopUp() {
+    const amount = parseFloat(topUpInput)
+    if (isNaN(amount) || amount <= 0) return
+    setSavingTopUp(true)
+    await fetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'vapi_credits_purchased', value: String(amount) }),
+    })
+    const r = await fetch('/api/dashboard-stats')
+    const d = await r.json()
+    setStats(d.stats)
+    setTopUpInput('')
+    setSavingTopUp(false)
+  }
 
   return (
     <div className="p-8 animate-fade-in-up">
@@ -133,15 +156,59 @@ export default function DashboardPage() {
           <div className="text-xs text-slate-400 mt-0.5">{stats.callsThisWeek} in the last 7 days</div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg mb-4 bg-amber-50 text-amber-600">
+        <div className={`bg-white rounded-xl border p-6 shadow-sm ${creditsLow ? 'border-red-300' : 'border-slate-200'}`}>
+          <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg mb-4 ${creditsLow ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div className="text-3xl font-bold text-slate-900">${totalSpend}</div>
-          <div className="text-sm font-medium text-slate-600 mt-1">Total Spend (VAPI)</div>
-          <div className="text-xs text-slate-400 mt-0.5">${monthSpend} this month</div>
+          {stats.creditsPurchasedCents === 0 ? (
+            <>
+              <div className="text-sm font-medium text-slate-600 mb-2">Credits Remaining</div>
+              <div className="flex gap-1.5">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter total purchased ($)"
+                  value={topUpInput}
+                  onChange={e => setTopUpInput(e.target.value)}
+                  className="flex-1 text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleTopUp}
+                  disabled={savingTopUp}
+                  className="text-xs px-2.5 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Set
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={`text-3xl font-bold ${creditsLow ? 'text-red-500' : 'text-slate-900'}`}>${creditsRemaining}</div>
+              <div className="text-sm font-medium text-slate-600 mt-1">Credits Remaining{creditsLow ? ' — running low' : ''}</div>
+              <div className="text-xs text-slate-400 mt-0.5">${totalSpend} spent of ${creditsPurchased} · ${monthSpend} this month</div>
+              <div className="flex gap-1.5 mt-3">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Update total ($)"
+                  value={topUpInput}
+                  onChange={e => setTopUpInput(e.target.value)}
+                  className="flex-1 text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleTopUp}
+                  disabled={savingTopUp}
+                  className="text-xs px-2.5 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 disabled:opacity-50"
+                >
+                  {savingTopUp ? '…' : 'Update'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
