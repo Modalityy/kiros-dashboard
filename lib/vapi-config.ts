@@ -53,14 +53,14 @@ function buildTools() {
       type: 'function',
       function: {
         name: 'book_appointment',
-        description: 'Books a new appointment. Only call after first name, last name, and email are explicitly confirmed by the caller.',
+        description: 'Books a new appointment. For returning callers, use their name and email from the profile — do NOT ask them to repeat it. Only ask for email if it is blank in the profile.',
         parameters: {
           type: 'object',
-          required: ['firstName', 'lastName', 'email', 'dateTime', 'bookingType', 'appointmentType'],
+          required: ['firstName', 'lastName', 'dateTime', 'bookingType', 'appointmentType'],
           properties: {
-            firstName:       { type: 'string', description: 'First name — must be spoken by the caller. Do not pass empty.' },
-            lastName:        { type: 'string', description: 'Last name — must be spoken by the caller. Do not pass empty.' },
-            email:           { type: 'string', description: 'Email — must be spoken by the caller. Do not pass empty.' },
+            firstName:       { type: 'string', description: 'First name — use from profile for returning callers.' },
+            lastName:        { type: 'string', description: 'Last name — use from profile for returning callers.' },
+            email:           { type: 'string', description: 'Email — use from profile for returning callers. Only ask caller if blank.' },
             dateTime:        { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore time)' },
             bookingType:     { type: 'string', enum: ['schedule'] },
             appointmentType: { type: 'string', enum: ['Zoom Meeting'] },

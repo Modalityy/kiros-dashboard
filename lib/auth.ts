@@ -1,7 +1,9 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 
-const ALLOWED_EMAIL = process.env.ALLOWED_EMAIL ?? 'gabbbb.ong@gmail.com'
+const ALLOWED_EMAILS = (process.env.ALLOWED_EMAILS ?? process.env.ALLOWED_EMAIL ?? 'gabbbb.ong@gmail.com')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -12,8 +14,7 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      // Whitelist — only this email can access the dashboard
-      return user.email === ALLOWED_EMAIL
+      return ALLOWED_EMAILS.includes(user.email?.toLowerCase() ?? '')
     },
     async session({ session, token }) {
       return session

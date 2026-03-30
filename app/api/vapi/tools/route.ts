@@ -75,14 +75,21 @@ async function handleTool(
 
   // ── book_appointment ────────────────────────────────────────────────────
   if (name === 'book_appointment') {
-    const { firstName, lastName, email, dateTime, clientObjective } = args
+    const { firstName, lastName, dateTime, clientObjective } = args
+    let { email } = args
+
+    // If email wasn't passed, fall back to stored profile email
+    if (!email) {
+      const existing = await getClientByPhone(phone)
+      email = existing?.email ?? ''
+    }
 
     // Upsert client in Supabase (creates if new, updates if returning)
     const client = await upsertClient({
       phone_number: phone,
       first_name: firstName,
       last_name: lastName,
-      email,
+      ...(email ? { email } : {}),
       zoom_meeting: dateTime,
       ...(clientObjective ? { objective_1: clientObjective } : {}),
     })
