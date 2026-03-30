@@ -59,6 +59,32 @@ function TypeBadge({ type }: { type: string }) {
   )
 }
 
+function ConfirmCancelModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="px-6 pt-6 pb-2">
+          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+          <h2 className="text-base font-semibold text-slate-900 text-center">Cancel Appointment</h2>
+          <p className="text-sm text-slate-500 text-center mt-1 mb-5">Are you sure you want to cancel this appointment? This cannot be undone.</p>
+        </div>
+        <div className="flex gap-2 px-6 pb-6">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+            Keep it
+          </button>
+          <button onClick={onConfirm} className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors">
+            Yes, cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EditBookingModal({
   booking,
   onClose,
@@ -156,8 +182,8 @@ function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () 
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
   const [localBookings, setLocalBookings] = useState(bookings)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
 
-  // sync when parent bookings prop changes
   useMemo(() => setLocalBookings(bookings), [bookings])
 
   const upcomingLocal = localBookings.filter(b =>
@@ -178,13 +204,14 @@ function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () 
     onRefresh()
   }
 
-  async function handleCancel(id: string) {
-    if (!confirm('Cancel this appointment?')) return
-    setCancellingId(id)
-    const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' })
+  async function confirmCancel() {
+    if (!confirmCancelId) return
+    setCancellingId(confirmCancelId)
+    setConfirmCancelId(null)
+    const res = await fetch(`/api/bookings/${confirmCancelId}`, { method: 'DELETE' })
     setCancellingId(null)
     if (res.ok) {
-      setLocalBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'cancelled' } : b))
+      setLocalBookings(prev => prev.map(b => b.id === confirmCancelId ? { ...b, status: 'cancelled' } : b))
       onRefresh()
     }
   }
@@ -247,7 +274,7 @@ function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () 
                           Edit
                         </button>
                         <button
-                          onClick={() => handleCancel(b.id)}
+                          onClick={() => setConfirmCancelId(b.id)}
                           disabled={cancellingId === b.id}
                           className="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 transition-colors"
                         >
@@ -272,6 +299,12 @@ function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () 
           booking={editingBooking}
           onClose={() => setEditingBooking(null)}
           onSaved={handleSaved}
+        />
+      )}
+      {confirmCancelId && (
+        <ConfirmCancelModal
+          onConfirm={confirmCancel}
+          onClose={() => setConfirmCancelId(null)}
         />
       )}
       <TableSection title="Upcoming Sessions" rows={upcomingLocal} emptyText="No upcoming sessions." showActions />
@@ -524,6 +557,54 @@ function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Bo
   )
 }
 
+function BookingDetailModal({ booking, onClose }: { booking: Booking; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h2 className="text-base font-semibold text-slate-900">Booking Detail</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+              {booking.clients?.first_name?.[0] ?? '?'}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{booking.clients?.first_name} {booking.clients?.last_name}</p>
+              <p className="text-xs text-slate-400">{booking.clients?.phone_number ?? '—'}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-slate-400 mb-0.5">Email</p>
+              <p className="text-sm text-slate-700 break-all">{booking.email ?? booking.clients?.email ?? '—'}</p>
+            </div>
+            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-slate-400 mb-0.5">Type</p>
+              <TypeBadge type={booking.booking_type} />
+            </div>
+            <div className="bg-slate-50 rounded-lg px-3 py-2.5 col-span-2">
+              <p className="text-xs text-slate-400 mb-0.5">Scheduled</p>
+              <p className="text-sm text-slate-700">{formatDateTime(booking.scheduled_at)}</p>
+            </div>
+            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-slate-400 mb-0.5">Status</p>
+              <p className={`text-sm font-medium capitalize ${booking.status === 'active' ? 'text-green-600' : booking.status === 'cancelled' ? 'text-red-500' : 'text-slate-400'}`}>
+                {booking.status}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () => void }) {
@@ -547,6 +628,9 @@ export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onR
 
   return (
     <>
+      {selectedBooking && (
+        <BookingDetailModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} />
+      )}
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Bookings</h1>
