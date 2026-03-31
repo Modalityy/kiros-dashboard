@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useToast } from '@/components/Toast'
 import { useRealtimeTable } from '@/hooks/useRealtimeTable'
+import { EmptyState } from '@/components/EmptyState'
 
 type Call = {
   id: string
@@ -18,6 +19,7 @@ type Call = {
   success_eval: string | null
   recording_url: string | null
   cost_cents: number | null
+  notes: string | null
   clients: {
     id: string
     first_name: string | null
@@ -210,16 +212,40 @@ function RecordingModal({ url, callerName, duration, onClose }: {
   )
 }
 
-function TranscriptModal({ transcript, summary, onClose }: {
+function TranscriptModal({ callId, transcript, summary, initialNotes, onClose, onNotesSaved }: {
+  callId: string
   transcript: string
   summary: string | null
+  initialNotes: string | null
   onClose: () => void
+  onNotesSaved: (id: string, notes: string) => void
 }) {
+  const { toast } = useToast()
   const [copied, setCopied] = useState(false)
+  const [notes, setNotes] = useState(initialNotes ?? '')
+  const [savingNotes, setSavingNotes] = useState(false)
 
   const handleCopy = () => {
     const text = [summary ? `Summary:\n${summary}` : '', `Transcript:\n${transcript}`].filter(Boolean).join('\n\n')
     navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+  }
+
+  const handleSaveNotes = async () => {
+    setSavingNotes(true)
+    try {
+      const res = await fetch('/api/calls', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: callId, notes }),
+      })
+      if (!res.ok) throw new Error()
+      onNotesSaved(callId, notes)
+      toast('Notes saved', 'success')
+    } catch {
+      toast('Failed to save notes', 'error')
+    } finally {
+      setSavingNotes(false)
+    }
   }
 
   return (
@@ -263,6 +289,26 @@ function TranscriptModal({ transcript, summary, onClose }: {
           <div>
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Full Transcript</h3>
             <pre className="text-xs text-slate-700 whitespace-pre-wrap font-sans leading-relaxed bg-slate-50 rounded-lg p-3">{transcript}</pre>
+          </div>
+          {/* Notes */}
+          <div>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Notes</h3>
+            <textarea
+              rows={3}
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Add a note about this call…"
+              className="w-full text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400"
+            />
+            <div className="flex justify-end mt-1.5">
+              <button
+                onClick={handleSaveNotes}
+                disabled={savingNotes || notes === (initialNotes ?? '')}
+                className="text-xs font-medium px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {savingNotes ? 'Saving…' : 'Save note'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -341,7 +387,7 @@ export function CallsTable() {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
-  const [selectedTranscript, setSelectedTranscript] = useState<{ transcript: string; summary: string | null } | null>(null)
+  const [selectedTranscript, setSelectedTranscript] = useState<{ callId: string; transcript: string; summary: string | null; notes: string | null } | null>(null)
   const [selectedRecording, setSelectedRecording] = useState<{ url: string; callerName: string; duration: number | null } | null>(null)
   const [selectedEndedReason, setSelectedEndedReason] = useState<{ reason: string; summary: string | null; vapiCallId: string } | null>(null)
 
@@ -407,9 +453,15 @@ export function CallsTable() {
     <>
       {selectedTranscript && (
         <TranscriptModal
+          callId={selectedTranscript.callId}
           transcript={selectedTranscript.transcript}
           summary={selectedTranscript.summary}
+          initialNotes={selectedTranscript.notes}
           onClose={() => setSelectedTranscript(null)}
+          onNotesSaved={(id, savedNotes) => {
+            setCalls(prev => prev.map(c => c.id === id ? { ...c, notes: savedNotes } : c))
+            setSelectedTranscript(prev => prev ? { ...prev, notes: savedNotes } : null)
+          }}
         />
       )}
       {selectedRecording && (
@@ -523,8 +575,12 @@ export function CallsTable() {
             </div>
           ))
         ) : paginated.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm shadow-sm">
-            {search ? 'No calls match your search.' : 'No calls yet.'}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+            <EmptyState
+              illustration="calls"
+              title="No calls yet"
+              description={search ? 'No calls match your search.' : 'Calls will appear here once Eh-va starts receiving inbound calls.'}
+            />
           </div>
         ) : (
           paginated.map(call => {
@@ -568,7 +624,7 @@ export function CallsTable() {
                   <div className="flex items-center gap-3 ml-auto flex-shrink-0">
                     {call.transcript && (
                       <button
-                        onClick={() => setSelectedTranscript({ transcript: call.transcript!, summary: call.summary })}
+                        onClick={() => setSelectedTranscript({ callId: call.id, transcript: call.transcript!, summary: call.summary, notes: call.notes })}
                         className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                       >
                         Transcript
@@ -629,17 +685,11 @@ export function CallsTable() {
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={12}>
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                        <svg className="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                      </div>
-                      <p className="text-slate-700 font-medium text-sm">No calls yet</p>
-                      <p className="text-slate-400 text-xs mt-1 max-w-xs">
-                        {search ? 'No calls match your search.' : 'Calls will appear here once Eh-va starts receiving inbound calls.'}
-                      </p>
-                    </div>
+                    <EmptyState
+                      illustration="calls"
+                      title="No calls yet"
+                      description={search ? 'No calls match your search.' : 'Calls will appear here once Eh-va starts receiving inbound calls.'}
+                    />
                   </td>
                 </tr>
               ) : (paginated.map(call => {
@@ -690,7 +740,7 @@ export function CallsTable() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         {call.transcript ? (
                           <button
-                            onClick={() => setSelectedTranscript({ transcript: call.transcript!, summary: call.summary })}
+                            onClick={() => setSelectedTranscript({ callId: call.id, transcript: call.transcript!, summary: call.summary, notes: call.notes })}
                             className="text-xs text-blue-600 hover:text-blue-800 font-medium underline underline-offset-2"
                           >
                             View

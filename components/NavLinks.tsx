@@ -60,7 +60,7 @@ const navItems = [
   },
 ]
 
-export function NavLinks() {
+export function NavLinks({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname()
 
   return (
@@ -73,16 +73,19 @@ export function NavLinks() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group ${
+            title={collapsed ? item.label : undefined}
+            className={`flex items-center rounded-lg text-sm font-medium transition-colors group ${
+              collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
+            } ${
               isActive
                 ? 'bg-slate-800 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
-            <span className={`transition-colors ${isActive ? 'text-blue-400' : 'group-hover:text-blue-400'}`}>
+            <span className={`transition-colors flex-shrink-0 ${isActive ? 'text-blue-400' : 'group-hover:text-blue-400'}`}>
               {item.icon}
             </span>
-            {item.label}
+            {!collapsed && item.label}
           </Link>
         )
       })}

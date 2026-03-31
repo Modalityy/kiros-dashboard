@@ -89,6 +89,35 @@ export async function sendRescheduleConfirmation({
   })
 }
 
+export async function sendSessionReminder({
+  firstName,
+  email,
+  dateTime,
+}: {
+  firstName: string
+  email: string
+  dateTime: string
+}) {
+  await transporter.sendMail({
+    from: FROM,
+    to: email,
+    subject: 'Reminder: Your Zoom Session is Tomorrow',
+    html: `
+      <p>Dear ${firstName},</p>
+
+      <p>This is a friendly reminder that your Zoom session with Daniel Wong is scheduled for <strong>tomorrow</strong>.</p>
+
+      <p><strong>Meeting Details:</strong><br>
+      <b>Date</b>: ${formatDate(dateTime)}<br>
+      <b>Time</b>: ${formatTime(dateTime)} (Singapore Time)</p>
+
+      <p>A Zoom link will be sent to you 30 minutes before the scheduled time. If you need to reschedule or have any questions, please reach us at 9173 3883.</p>
+
+      <p>Warm regards,<br/>Daniel Wong's Office</p>
+    `,
+  })
+}
+
 export async function sendCancellationConfirmation({
   firstName,
   email,

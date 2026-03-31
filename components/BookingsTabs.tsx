@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useRealtimeTable } from '@/hooks/useRealtimeTable'
+import { EmptyState } from '@/components/EmptyState'
 
 type Booking = {
   id: string
@@ -208,7 +209,13 @@ function ListView({
           <tbody className="divide-y divide-slate-50">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={showActions ? 6 : 5} className="py-10 text-center text-sm text-slate-400">{emptyText}</td>
+                <td colSpan={showActions ? 6 : 5}>
+                  <EmptyState
+                    illustration="bookings"
+                    title={emptyText}
+                    description={showActions ? 'Bookings made through Eh-va will appear here.' : 'Past sessions and cancellations will appear here.'}
+                  />
+                </td>
               </tr>
             ) : (
               rows.map(b => (

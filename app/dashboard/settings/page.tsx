@@ -165,11 +165,29 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[400px]">
-        <div className="flex items-center gap-3 text-slate-400">
-          <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin" />
-          Loading…
+      <div className="p-8 animate-fade-in-up max-w-3xl">
+        <div className="mb-8">
+          <div className="h-7 w-28 rounded-lg bg-slate-100 animate-skeleton mb-2" />
+          <div className="h-4 w-80 rounded bg-slate-100 animate-skeleton" />
         </div>
+        {/* Placeholder chip row */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4 mb-8 flex flex-wrap gap-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-5 w-20 rounded bg-blue-100 animate-skeleton" />
+          ))}
+        </div>
+        {/* Cards */}
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <div className="h-4 w-36 rounded bg-slate-100 animate-skeleton mb-1.5" />
+              <div className="h-3 w-56 rounded bg-slate-100 animate-skeleton" />
+            </div>
+            <div className="p-4">
+              <div className="h-24 rounded-lg bg-slate-100 animate-skeleton" />
+            </div>
+          </div>
+        ))}
       </div>
     )
   }

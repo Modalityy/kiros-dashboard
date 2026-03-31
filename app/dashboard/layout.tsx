@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { NavigationProgress } from '@/components/NavigationProgress'
 import { ToastProvider } from '@/components/Toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { CommandPalette } from '@/components/CommandPalette'
 
 export default async function DashboardLayout({
   children,
@@ -16,6 +17,7 @@ export default async function DashboardLayout({
 
   return (
     <ToastProvider>
+      <CommandPalette />
       <div className="flex h-screen bg-slate-50 overflow-hidden">
         <NavigationProgress />
         <Sidebar

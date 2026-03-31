@@ -11,11 +11,29 @@ type Props = {
   userInitial: string
 }
 
+const COLLAPSED_KEY = 'sidebar_collapsed'
+
 export function Sidebar({ userName, userEmail, userInitial }: Props) {
   const [open, setOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
 
-  // Close on route change
+  // Load persisted collapsed state
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSED_KEY) === 'true')
+    } catch {}
+  }, [])
+
+  const toggleCollapsed = () => {
+    setCollapsed(v => {
+      const next = !v
+      try { localStorage.setItem(COLLAPSED_KEY, String(next)) } catch {}
+      return next
+    })
+  }
+
+  // Close mobile drawer on route change
   useEffect(() => { setOpen(false) }, [pathname])
 
   // Close on Escape
@@ -25,44 +43,113 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  const sidebarContent = (
+  const sidebarContent = (isCollapsible: boolean) => (
     <>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
+      <div className={`flex items-center border-b border-slate-800 ${collapsed && isCollapsible ? 'px-3 py-5 justify-center' : 'px-6 py-5 gap-3'}`}>
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
           M
         </div>
-        <div>
-          <div className="text-white font-semibold text-sm leading-tight">Meridian</div>
-          <div className="text-slate-400 text-xs">Console</div>
-        </div>
-        {/* Close button — mobile only */}
-        <button
-          onClick={() => setOpen(false)}
-          aria-label="Close navigation"
-          className="ml-auto text-slate-400 hover:text-white transition-colors lg:hidden"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        {(!collapsed || !isCollapsible) && (
+          <div className="flex-1 min-w-0">
+            <div className="text-white font-semibold text-sm leading-tight">Meridian</div>
+            <div className="text-slate-400 text-xs">Console</div>
+          </div>
+        )}
+        {/* Mobile close */}
+        {!isCollapsible && (
+          <button
+            onClick={() => setOpen(false)}
+            aria-label="Close navigation"
+            className="ml-auto text-slate-400 hover:text-white transition-colors lg:hidden"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+        {/* Desktop collapse toggle */}
+        {isCollapsible && (
+          <button
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={`text-slate-400 hover:text-white transition-colors p-1 rounded hover:bg-slate-800 ${collapsed ? 'hidden' : 'ml-auto flex-shrink-0'}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
       </div>
 
+      {/* ⌘K trigger */}
+      {(!collapsed || !isCollapsible) && (
+        <div className="px-3 pt-3 pb-1">
+          <button
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors text-xs"
+          >
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <span className="flex-1 text-left">Quick nav…</span>
+            <kbd className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+          </button>
+        </div>
+      )}
+      {(collapsed && isCollapsible) && (
+        <div className="px-3 pt-3 pb-1">
+          <button
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
+            title="Quick nav (⌘K)"
+            className="w-full flex items-center justify-center p-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Nav */}
-      <NavLinks />
+      <NavLinks collapsed={collapsed && isCollapsible} />
+
+      {/* Collapse toggle (icon-only mode — shown at bottom of nav) */}
+      {isCollapsible && collapsed && (
+        <div className={`px-3 py-2`}>
+          <button
+            onClick={toggleCollapsed}
+            title="Expand sidebar"
+            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* User / sign out */}
-      <div className="px-4 py-4 border-t border-slate-800">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+      <div className={`border-t border-slate-800 ${collapsed && isCollapsible ? 'px-3 py-4 flex flex-col items-center gap-2' : 'px-4 py-4'}`}>
+        {collapsed && isCollapsible ? (
+          <div
+            className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white text-xs font-medium"
+            title={`${userName} · ${userEmail}`}
+          >
             {userInitial}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-white text-xs font-medium truncate">{userName}</div>
-            <div className="text-slate-500 text-xs truncate">{userEmail}</div>
+        ) : (
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+              {userInitial}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white text-xs font-medium truncate">{userName}</div>
+              <div className="text-slate-500 text-xs truncate">{userEmail}</div>
+            </div>
           </div>
-        </div>
-        <SignOutButton />
+        )}
+        <SignOutButton collapsed={collapsed && isCollapsible} />
       </div>
     </>
   )
@@ -70,8 +157,8 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 bg-slate-900 flex-col flex-shrink-0">
-        {sidebarContent}
+      <aside className={`hidden lg:flex flex-col flex-shrink-0 bg-slate-900 transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'}`}>
+        {sidebarContent(true)}
       </aside>
 
       {/* Mobile top bar */}
@@ -89,13 +176,9 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
         <span className="text-white font-semibold text-sm">Meridian</span>
       </div>
 
-      {/* Mobile drawer overlay */}
+      {/* Mobile overlay */}
       {open && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/60"
-          onClick={() => setOpen(false)}
-          aria-hidden="true"
-        />
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setOpen(false)} aria-hidden="true" />
       )}
 
       {/* Mobile drawer */}
@@ -105,7 +188,7 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
         }`}
         aria-label="Navigation"
       >
-        {sidebarContent}
+        {sidebarContent(false)}
       </aside>
     </>
   )
