@@ -6,12 +6,20 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Force pixel-perfect rendering — prevents fractional pixel blur */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background-color: #f8fafc;
   color: #0f172a;
+  /* Crisp font rendering on all platforms */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  font-synthesis: none;
 }
 
 /* Scrollbar styling */
@@ -30,14 +38,14 @@ body {
   background: #94a3b8;
 }
 
-/* Page transition */
+/* Page transition — ends at translateZ(0) so text snaps to whole pixels */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(8px) translateZ(0); }
+  to   { opacity: 1; transform: translateY(0) translateZ(0); }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.25s ease-out both;
+  animation: fadeInUp 0.2s ease-out both;
 }
 
 /* Accessible focus ring — only shown on keyboard nav, not mouse clicks */
@@ -49,9 +57,9 @@ body {
 
 /* Staggered children */
 .animate-fade-in-up > * {
-  animation: fadeInUp 0.25s ease-out both;
+  animation: fadeInUp 0.2s ease-out both;
 }
 .animate-fade-in-up > *:nth-child(1) { animation-delay: 0ms; }
-.animate-fade-in-up > *:nth-child(2) { animation-delay: 40ms; }
-.animate-fade-in-up > *:nth-child(3) { animation-delay: 80ms; }
-.animate-fade-in-up > *:nth-child(4) { animation-delay: 120ms; }
+.animate-fade-in-up > *:nth-child(2) { animation-delay: 35ms; }
+.animate-fade-in-up > *:nth-child(3) { animation-delay: 70ms; }
+.animate-fade-in-up > *:nth-child(4) { animation-delay: 105ms; }
