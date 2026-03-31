@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useToast } from '@/components/Toast'
+import { useRealtimeTable } from '@/hooks/useRealtimeTable'
 
 type Call = {
   id: string
@@ -310,24 +312,64 @@ const SORTABLE: { label: string; key: SortKey }[] = [
   { label: 'Cost', key: 'cost_cents' },
 ]
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const REFRESH_INTERVAL_MS = 60_000
+
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-slate-50">
+      {Array.from({ length: 11 }).map((_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className={`h-3.5 rounded bg-slate-100 animate-skeleton ${
+            i === 0 ? 'w-16' : i === 2 ? 'w-24' : i === 3 ? 'w-14' : i === 4 ? 'w-28' : 'w-12'
+          }`} />
+        </td>
+      ))}
+    </tr>
+  )
+}
+
 export function CallsTable() {
+  const { toast } = useToast()
   const [calls, setCalls] = useState<Call[]>([])
   const [loadingCalls, setLoadingCalls] = useState(true)
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('started_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [pageSize, setPageSize] = useState(10)
+  const [page, setPage] = useState(1)
   const [selectedTranscript, setSelectedTranscript] = useState<{ transcript: string; summary: string | null } | null>(null)
   const [selectedRecording, setSelectedRecording] = useState<{ url: string; callerName: string; duration: number | null } | null>(null)
   const [selectedEndedReason, setSelectedEndedReason] = useState<{ reason: string; summary: string | null; vapiCallId: string } | null>(null)
 
+  const fetchCalls = useCallback(async (silent = false) => {
+    if (!silent) setLoadingCalls(true)
+    try {
+      const r = await fetch('/api/calls')
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const data = await r.json()
+      setCalls(Array.isArray(data) ? data : [])
+      setLastRefreshed(new Date())
+    } catch {
+      if (!silent) toast('Failed to load call logs', 'error')
+    } finally {
+      if (!silent) setLoadingCalls(false)
+    }
+  }, [toast])
+
   useEffect(() => {
-    fetch('/api/calls')
-      .then(r => r.json())
-      .then(data => { setCalls(Array.isArray(data) ? data : []); setLoadingCalls(false) })
-      .catch(() => setLoadingCalls(false))
-  }, [])
+    fetchCalls(false)
+    const interval = setInterval(() => fetchCalls(true), REFRESH_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [fetchCalls])
+
+  // Live push: re-fetch silently whenever a call row changes in Supabase
+  useRealtimeTable('calls', useCallback(() => fetchCalls(true), [fetchCalls]))
+
+  useEffect(() => { setPage(1) }, [search, dateFrom, dateTo, sortKey, sortDir, pageSize])
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -354,6 +396,9 @@ export function CallsTable() {
       if (av > bv) return sortDir === 'asc' ? 1 : -1
       return 0
     })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   // Static headers + sortable headers merged into one row
   const staticCols = ['Call ID', 'Phone', 'Name', 'Direction', 'Ended Reason', 'Transcript', 'Recording', 'Eval']
@@ -410,13 +455,6 @@ export function CallsTable() {
         </div>
       )}
 
-      {loadingCalls && (
-        <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
-          <span className="w-4 h-4 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
-          Loading call logs…
-        </div>
-      )}
-
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
@@ -440,19 +478,121 @@ export function CallsTable() {
             </button>
           )}
         </div>
-        <button
-          onClick={() => exportCSV(filtered)}
-          className="ml-auto flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 transition-colors"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Export CSV
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          {lastRefreshed && (
+            <span className="text-xs text-slate-400 hidden sm:block">
+              Updated {lastRefreshed.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+          <button
+            onClick={() => fetchCalls(false)}
+            disabled={loadingCalls}
+            title="Refresh"
+            className="flex items-center justify-center w-8 h-8 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-40"
+          >
+            <svg className={`w-3.5 h-3.5 text-slate-500 ${loadingCalls ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+          <button
+            onClick={() => exportCSV(filtered)}
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export CSV
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Mobile card list — shown below lg breakpoint */}
+      <div className="lg:hidden space-y-3">
+        {loadingCalls ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-slate-100 animate-skeleton flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-4 w-32 rounded bg-slate-100 animate-skeleton" />
+                  <div className="h-3 w-24 rounded bg-slate-100 animate-skeleton" />
+                </div>
+                <div className="h-5 w-16 rounded-full bg-slate-100 animate-skeleton" />
+              </div>
+              <div className="h-3 w-40 rounded bg-slate-100 animate-skeleton" />
+            </div>
+          ))
+        ) : paginated.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm shadow-sm">
+            {search ? 'No calls match your search.' : 'No calls yet.'}
+          </div>
+        ) : (
+          paginated.map(call => {
+            const callerName = [call.clients?.first_name, call.clients?.last_name].filter(Boolean).join(' ')
+            const initials = callerName
+              ? callerName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+              : '?'
+            return (
+              <div key={call.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+                {/* Header row */}
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-slate-900 truncate">
+                      {callerName || <span className="text-slate-400">Unknown</span>}
+                    </div>
+                    <div className="text-xs font-mono text-slate-500">{formatPhone(call.phone_number)}</div>
+                  </div>
+                  <DirectionBadge direction={callDirection(call)} />
+                </div>
+
+                {/* Meta row */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                  <span>{formatDateTime(call.started_at)}</span>
+                  {call.duration_seconds !== null && <span>{formatDuration(call.duration_seconds)}</span>}
+                  {call.cost_cents !== null && <span className="font-mono">{formatCost(call.cost_cents)}</span>}
+                </div>
+
+                {/* Actions row */}
+                <div className="flex items-center gap-3 pt-1 border-t border-slate-50">
+                  {call.ended_reason && (
+                    <button
+                      onClick={() => setSelectedEndedReason({ reason: call.ended_reason!, summary: call.summary, vapiCallId: call.vapi_call_id })}
+                      className="text-xs text-slate-500 hover:text-slate-900 hover:underline underline-offset-2 flex-1 text-left truncate"
+                    >
+                      {formatEndedReason(call.ended_reason)}
+                    </button>
+                  )}
+                  <div className="flex items-center gap-3 ml-auto flex-shrink-0">
+                    {call.transcript && (
+                      <button
+                        onClick={() => setSelectedTranscript({ transcript: call.transcript!, summary: call.summary })}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Transcript
+                      </button>
+                    )}
+                    {call.recording_url && (
+                      <button
+                        onClick={() => setSelectedRecording({ url: call.recording_url!, callerName: callerName || call.phone_number, duration: call.duration_seconds })}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Recording
+                      </button>
+                    )}
+                    <EvalCell value={call.success_eval} />
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Table — hidden on mobile */}
+      <div className="hidden lg:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
@@ -484,7 +624,9 @@ export function CallsTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.length === 0 ? (
+              {loadingCalls ? (
+                Array.from({ length: pageSize }).map((_, i) => <SkeletonRow key={i} />)
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={12}>
                     <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -500,11 +642,11 @@ export function CallsTable() {
                     </div>
                   </td>
                 </tr>
-              ) : (
-                filtered.map(call => {
+              ) : (paginated.map(call => {
                   const callerName = [call.clients?.first_name, call.clients?.last_name].filter(Boolean).join(' ') || call.phone_number
                   return (
                     <tr key={call.id} className="hover:bg-slate-50 transition-colors">
+
                       {/* Call ID */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <CallIdCell id={call.vapi_call_id} />
@@ -580,12 +722,62 @@ export function CallsTable() {
                       </td>
                     </tr>
                   )
-                })
-              )}
+                }))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Pagination footer */}
+      {filtered.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+          {/* Rows per page */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs">Rows per page</span>
+            <select
+              value={pageSize}
+              onChange={e => setPageSize(Number(e.target.value))}
+              className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {PAGE_SIZE_OPTIONS.map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Page info + prev/next */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs">
+              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="text-xs px-2">
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

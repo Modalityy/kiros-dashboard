@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useRealtimeTable } from '@/hooks/useRealtimeTable'
 
 type Booking = {
   id: string
@@ -594,6 +595,8 @@ export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onR
   const [localBookings, setLocalBookings] = useState(bookings)
 
   useMemo(() => setLocalBookings(bookings), [bookings])
+
+  useRealtimeTable('bookings', useCallback(() => onRefresh(), [onRefresh]))
 
   const now = new Date()
   const upcoming = localBookings.filter(b =>

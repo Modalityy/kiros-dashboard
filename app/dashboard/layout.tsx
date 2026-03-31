@@ -3,6 +3,8 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
 import { NavigationProgress } from '@/components/NavigationProgress'
+import { ToastProvider } from '@/components/Toast'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export default async function DashboardLayout({
   children,
@@ -13,18 +15,22 @@ export default async function DashboardLayout({
   if (!session) redirect('/login')
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <NavigationProgress />
-      <Sidebar
-        userName={session.user?.name}
-        userEmail={session.user?.email}
-        userInitial={session.user?.name?.[0] ?? 'G'}
-      />
+    <ToastProvider>
+      <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <NavigationProgress />
+        <Sidebar
+          userName={session.user?.name}
+          userEmail={session.user?.email}
+          userInitial={session.user?.name?.[0] ?? 'G'}
+        />
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto pt-14 lg:pt-0 animate-fade-in">
-        {children}
-      </main>
-    </div>
+        {/* Main content */}
+        <main className="flex-1 overflow-auto pt-14 lg:pt-0 animate-fade-in">
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </main>
+      </div>
+    </ToastProvider>
   )
 }
