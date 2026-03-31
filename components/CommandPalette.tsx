@@ -160,14 +160,14 @@ export function CommandPalette() {
 
       {/* Panel */}
       <div
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
+        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800">
           <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -177,9 +177,9 @@ export function CommandPalette() {
             placeholder="Go to page…"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            className="flex-1 text-sm text-slate-900 bg-transparent outline-none placeholder:text-slate-400"
+            className="flex-1 text-sm text-slate-900 dark:text-white bg-transparent outline-none placeholder:text-slate-400"
           />
-          <kbd className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-mono">Esc</kbd>
+          <kbd className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono">Esc</kbd>
         </div>
 
         {/* Results */}
@@ -193,14 +193,14 @@ export function CommandPalette() {
                 onClick={item.action}
                 onMouseEnter={() => setActiveIndex(i)}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                  i === activeIndex ? 'bg-blue-50' : 'hover:bg-slate-50'
+                  i === activeIndex ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <span className={`flex-shrink-0 ${i === activeIndex ? 'text-blue-500' : 'text-slate-400'}`}>
                   {item.icon}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-medium ${i === activeIndex ? 'text-blue-700' : 'text-slate-800'}`}>
+                  <div className={`text-sm font-medium ${i === activeIndex ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>
                     {item.label}
                   </div>
                   {item.description && (
@@ -210,7 +210,7 @@ export function CommandPalette() {
                 {item.shortcut && (
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {item.shortcut.split(' ').map((k, ki) => (
-                      <kbd key={ki} className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-mono">{k}</kbd>
+                      <kbd key={ki} className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono">{k}</kbd>
                     ))}
                   </div>
                 )}
@@ -220,15 +220,15 @@ export function CommandPalette() {
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2.5 border-t border-slate-100 flex items-center gap-4 text-xs text-slate-400">
+        <div className="px-4 py-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center gap-4 text-xs text-slate-400">
           <span className="flex items-center gap-1">
-            <kbd className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">↑↓</kbd> navigate
+            <kbd className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono">↑↓</kbd> navigate
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">↵</kbd> open
+            <kbd className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono">↵</kbd> open
           </span>
           <span className="flex items-center gap-1 ml-auto">
-            <kbd className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">G</kbd>+<kbd className="bg-slate-100 px-1.5 py-0.5 rounded font-mono">C/B/L…</kbd> jump
+            <kbd className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono">G</kbd>+<kbd className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-mono">C/B/L…</kbd> jump
           </span>
         </div>
       </div>

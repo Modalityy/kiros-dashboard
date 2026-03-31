@@ -50,12 +50,12 @@ function isoToDatetimeLocal(iso: string) {
 
 function TypeBadge({ type }: { type: string }) {
   const styles: Record<string, string> = {
-    schedule: 'bg-green-100 text-green-700',
-    reschedule: 'bg-amber-100 text-amber-700',
-    cancel: 'bg-red-100 text-red-700',
+    schedule: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
+    reschedule: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
+    cancel: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300',
   }
   return (
-    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${styles[type] ?? 'bg-slate-100 text-slate-600'}`}>
+    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${styles[type] ?? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
       {type}
     </span>
   )
@@ -64,18 +64,18 @@ function TypeBadge({ type }: { type: string }) {
 function ConfirmCancelModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900 w-full max-w-sm" onClick={e => e.stopPropagation()}>
         <div className="px-6 pt-6 pb-2">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+          <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
           </div>
-          <h2 className="text-base font-semibold text-slate-900 text-center">Cancel Appointment</h2>
-          <p className="text-sm text-slate-500 text-center mt-1 mb-5">Are you sure you want to cancel this appointment? This cannot be undone.</p>
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white text-center">Cancel Appointment</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 text-center mt-1 mb-5">Are you sure you want to cancel this appointment? This cannot be undone.</p>
         </div>
         <div className="flex gap-2 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+          <button onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">
             Keep it
           </button>
           <button onClick={onConfirm} className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors">
@@ -120,10 +120,10 @@ function EditBookingModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-900">Edit Appointment</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">Edit Appointment</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -131,23 +131,23 @@ function EditBookingModal({
         </div>
         <div className="px-6 py-5 space-y-4">
           <div>
-            <p className="text-sm font-medium text-slate-700 mb-1">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               {booking.clients?.first_name} {booking.clients?.last_name}
             </p>
-            <p className="text-xs text-slate-400">{booking.clients?.phone_number}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">{booking.clients?.phone_number}</p>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">New date & time (SGT)</label>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">New date & time (SGT)</label>
             <input
               type="datetime-local"
               value={value}
               onChange={e => setValue(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
             />
           </div>
           {error && <p className="text-xs text-red-500">{error}</p>}
           <div className="flex gap-2 justify-end">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
               Cancel
             </button>
             <button
@@ -190,23 +190,23 @@ function ListView({
     emptyText: string
     showActions?: boolean
   }) => (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-5 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">{title}</h2>
-        <span className="text-xs text-slate-400 font-medium">{rows.length}</span>
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 mb-5 overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{title}</h2>
+        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">{rows.length}</span>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100">
-          <thead className="bg-slate-50/70">
+        <table className="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
+          <thead className="bg-slate-50/70 dark:bg-slate-800/30">
             <tr>
               {['Client', 'Phone', 'Email', 'Scheduled', 'Type', ...(showActions ? ['Actions'] : [])].map(col => (
-                <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide whitespace-nowrap">
+                <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide whitespace-nowrap">
                   {col}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={showActions ? 6 : 5}>
@@ -219,34 +219,34 @@ function ListView({
               </tr>
             ) : (
               rows.map(b => (
-                <tr key={b.id} className="hover:bg-slate-50/60 transition-colors group">
+                <tr key={b.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors group">
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-xs flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center font-semibold text-xs flex-shrink-0">
                         {b.clients?.first_name?.[0] ?? '?'}
                       </div>
-                      <span className="text-sm font-medium text-slate-900">
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">
                         {b.clients?.first_name} {b.clients?.last_name}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-500 font-mono whitespace-nowrap">{b.clients?.phone_number}</td>
-                  <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">{b.email ?? b.clients?.email ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-slate-700 whitespace-nowrap">{formatDateTime(b.scheduled_at)}</td>
+                  <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap">{b.clients?.phone_number}</td>
+                  <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">{b.email ?? b.clients?.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatDateTime(b.scheduled_at)}</td>
                   <td className="px-4 py-3 whitespace-nowrap"><TypeBadge type={b.booking_type} /></td>
                   {showActions && (
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => onEdit(b)}
-                          className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium"
+                          className="text-xs px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors font-medium"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => onCancel(b.id)}
                           disabled={cancellingId === b.id}
-                          className="text-xs px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-40 transition-colors font-medium"
+                          className="text-xs px-2.5 py-1 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-40 transition-colors font-medium"
                         >
                           {cancellingId === b.id ? '…' : 'Cancel'}
                         </button>
@@ -273,9 +273,9 @@ function ListView({
 // ── Calendar Tab ──────────────────────────────────────────────────────────────
 
 const BOOKING_COLORS: Record<string, string> = {
-  schedule: 'bg-blue-100 text-blue-800 border-blue-200',
-  reschedule: 'bg-amber-100 text-amber-800 border-amber-200',
-  cancel: 'bg-red-100 text-red-700 border-red-200',
+  schedule: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+  reschedule: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+  cancel: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
 }
 
 function getLocalSGTDate(iso: string) {
@@ -320,22 +320,22 @@ function MonthView({ bookings, selected, onSelect }: {
   const next = () => setCursor(c => c.month === 11 ? { year: c.year + 1, month: 0 } : { year: c.year, month: c.month + 1 })
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <h3 className="text-sm font-semibold text-slate-800">{monthLabel}</h3>
-        <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
+        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{monthLabel}</h3>
+        <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
-      <div className="grid grid-cols-7 border-b border-slate-100">
+      <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-          <div key={d} className="py-2 text-center text-xs font-semibold text-slate-400 uppercase tracking-wide">{d}</div>
+          <div key={d} className="py-2 text-center text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{d}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 divide-x divide-y divide-slate-100">
+      <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800">
         {Array.from({ length: totalCells }).map((_, i) => {
           const dayNum = i - startPad + 1
           const isValid = dayNum >= 1 && dayNum <= lastDay.getDate()
@@ -344,10 +344,10 @@ function MonthView({ bookings, selected, onSelect }: {
           const isToday = dateKey === todayKey
 
           return (
-            <div key={i} className={`min-h-[90px] p-1.5 ${!isValid ? 'bg-slate-50/60' : 'bg-white'}`}>
+            <div key={i} className={`min-h-[90px] p-1.5 ${!isValid ? 'bg-slate-50/60 dark:bg-slate-800/30' : 'bg-white dark:bg-slate-900'}`}>
               {isValid && (
                 <>
-                  <div className={`w-6 h-6 flex items-center justify-center text-xs font-medium rounded-full mb-1 ${isToday ? 'bg-blue-600 text-white' : 'text-slate-500'}`}>
+                  <div className={`w-6 h-6 flex items-center justify-center text-xs font-medium rounded-full mb-1 ${isToday ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>
                     {dayNum}
                   </div>
                   <div className="space-y-0.5">
@@ -355,12 +355,12 @@ function MonthView({ bookings, selected, onSelect }: {
                       <button
                         key={b.id}
                         onClick={() => onSelect(b)}
-                        className={`w-full text-left text-[10px] px-1.5 py-0.5 rounded border font-medium truncate ${BOOKING_COLORS[b.booking_type] ?? 'bg-slate-100 text-slate-600 border-slate-200'}`}
+                        className={`w-full text-left text-[10px] px-1.5 py-0.5 rounded border font-medium truncate ${BOOKING_COLORS[b.booking_type] ?? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}
                       >
                         {formatTime(b.scheduled_at)} {b.clients?.first_name ?? 'Unknown'}
                       </button>
                     ))}
-                    {dayBookings.length > 3 && <p className="text-[10px] text-slate-400 pl-1">+{dayBookings.length - 3} more</p>}
+                    {dayBookings.length > 3 && <p className="text-[10px] text-slate-400 dark:text-slate-500 pl-1">+{dayBookings.length - 3} more</p>}
                   </div>
                 </>
               )}
@@ -406,24 +406,24 @@ function WeekView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: B
   const next = () => setWeekStart(w => { const d = new Date(w); d.setDate(d.getDate() + 7); return d })
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <h3 className="text-sm font-semibold text-slate-800">{rangeLabel}</h3>
-        <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
+        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{rangeLabel}</h3>
+        <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
-      <div className="grid grid-cols-7 divide-x border-b border-slate-100">
+      <div className="grid grid-cols-7 divide-x border-b border-slate-100 dark:border-slate-800">
         {days.map(d => {
           const key = d.toISOString().slice(0, 10)
           const isToday = key === todayKey
           return (
-            <div key={key} className={`p-2 text-center ${isToday ? 'bg-blue-50' : ''}`}>
-              <div className="text-xs text-slate-400 uppercase mb-1">{d.toLocaleDateString('en-SG', { weekday: 'short' })}</div>
-              <div className={`text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-slate-700'}`}>{d.getDate()}</div>
+            <div key={key} className={`p-2 text-center ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+              <div className="text-xs text-slate-400 dark:text-slate-500 uppercase mb-1">{d.toLocaleDateString('en-SG', { weekday: 'short' })}</div>
+              <div className={`text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-slate-700 dark:text-slate-300'}`}>{d.getDate()}</div>
             </div>
           )
         })}
@@ -438,7 +438,7 @@ function WeekView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: B
                 <button
                   key={b.id}
                   onClick={() => onSelect(b)}
-                  className={`w-full text-left text-[11px] px-2 py-1 rounded border font-medium ${BOOKING_COLORS[b.booking_type] ?? 'bg-slate-100 text-slate-600 border-slate-200'}`}
+                  className={`w-full text-left text-[11px] px-2 py-1 rounded border font-medium ${BOOKING_COLORS[b.booking_type] ?? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'}`}
                 >
                   <div>{formatTime(b.scheduled_at)}</div>
                   <div className="truncate">{b.clients?.first_name ?? 'Unknown'}</div>
@@ -471,23 +471,23 @@ function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Bo
   const next = () => setCursor(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n })
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <button onClick={prev} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
         <div className="text-center">
-          <h3 className={`text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-slate-800'}`}>{dayLabel}</h3>
+          <h3 className={`text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-slate-800 dark:text-slate-200'}`}>{dayLabel}</h3>
           {isToday && <p className="text-xs text-blue-400">Today</p>}
         </div>
-        <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-800">
+        <button onClick={next} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
       <div className="p-4 min-h-[200px]">
         {dayBookings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-            <svg className="w-10 h-10 mb-3 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
+            <svg className="w-10 h-10 mb-3 text-slate-200 dark:text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <p className="text-sm">No bookings on this day</p>
@@ -498,7 +498,7 @@ function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Bo
               <button
                 key={b.id}
                 onClick={() => onSelect(b)}
-                className={`w-full text-left px-4 py-3 rounded-xl border ${BOOKING_COLORS[b.booking_type] ?? 'bg-slate-50 border-slate-200'} hover:shadow-sm transition-shadow`}
+                className={`w-full text-left px-4 py-3 rounded-xl border ${BOOKING_COLORS[b.booking_type] ?? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700'} hover:shadow-sm transition-shadow`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold">{b.clients?.first_name} {b.clients?.last_name}</span>
@@ -529,10 +529,10 @@ function BookingDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in-up" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-900">Booking Details</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900 w-full max-w-sm animate-fade-in-up" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">Booking Details</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -540,30 +540,30 @@ function BookingDetailModal({
         </div>
         <div className="px-6 py-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center font-semibold text-sm flex-shrink-0">
               {booking.clients?.first_name?.[0] ?? '?'}
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900">{booking.clients?.first_name} {booking.clients?.last_name}</p>
-              <p className="text-xs text-slate-400">{booking.clients?.phone_number ?? '—'}</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{booking.clients?.first_name} {booking.clients?.last_name}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">{booking.clients?.phone_number ?? '—'}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-slate-400 mb-0.5">Email</p>
-              <p className="text-sm text-slate-700 break-all">{booking.email ?? booking.clients?.email ?? '—'}</p>
+            <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Email</p>
+              <p className="text-sm text-slate-700 dark:text-slate-300 break-all">{booking.email ?? booking.clients?.email ?? '—'}</p>
             </div>
-            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-slate-400 mb-0.5">Type</p>
+            <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Type</p>
               <TypeBadge type={booking.booking_type} />
             </div>
-            <div className="bg-slate-50 rounded-lg px-3 py-2.5 col-span-2">
-              <p className="text-xs text-slate-400 mb-0.5">Scheduled</p>
-              <p className="text-sm text-slate-700">{formatDateTime(booking.scheduled_at)}</p>
+            <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg px-3 py-2.5 col-span-2">
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Scheduled</p>
+              <p className="text-sm text-slate-700 dark:text-slate-300">{formatDateTime(booking.scheduled_at)}</p>
             </div>
-            <div className="bg-slate-50 rounded-lg px-3 py-2.5">
-              <p className="text-xs text-slate-400 mb-0.5">Status</p>
-              <p className={`text-sm font-medium capitalize ${booking.status === 'active' ? 'text-green-600' : booking.status === 'cancelled' ? 'text-red-500' : 'text-slate-400'}`}>
+            <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Status</p>
+              <p className={`text-sm font-medium capitalize ${booking.status === 'active' ? 'text-green-600' : booking.status === 'cancelled' ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'}`}>
                 {booking.status}
               </p>
             </div>
@@ -572,13 +572,13 @@ function BookingDetailModal({
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => { onClose(); onEdit(booking) }}
-                className="flex-1 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                className="flex-1 px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
               >
                 Edit
               </button>
               <button
                 onClick={() => { onClose(); onCancel(booking.id) }}
-                className="flex-1 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                className="flex-1 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -654,17 +654,17 @@ export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onR
       )}
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Bookings</h1>
-          <p className="text-slate-500 text-sm mt-1">{upcoming.length} upcoming · {past.length} past/cancelled</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Bookings</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{upcoming.length} upcoming · {past.length} past/cancelled</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex bg-slate-100 rounded-lg p-1">
+          <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
             {([['list', 'List'], ['calendar', 'Calendar']] as [Tab, string][]).map(([t, label]) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${tab === t ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${tab === t ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm dark:shadow-slate-900' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
               >
                 {label}
               </button>
@@ -672,12 +672,12 @@ export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onR
           </div>
 
           {tab === 'calendar' && (
-            <div className="flex bg-slate-100 rounded-lg p-1">
+            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
               {([['month', 'Month'], ['week', 'Week'], ['day', 'Day']] as [View, string][]).map(([v, label]) => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${view === v ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${view === v ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm dark:shadow-slate-900' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
                 >
                   {label}
                 </button>

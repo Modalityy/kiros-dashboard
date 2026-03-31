@@ -81,7 +81,7 @@ export function EmptyState({ title, description, illustration }: EmptyStateProps
       <div className="mb-4 opacity-90">
         <Illustration />
       </div>
-      <p className="text-slate-700 font-medium text-sm">{title}</p>
+      <p className="text-slate-700 dark:text-slate-300 font-medium text-sm">{title}</p>
       <p className="text-slate-400 text-xs mt-1 max-w-xs leading-relaxed">{description}</p>
     </div>
   )

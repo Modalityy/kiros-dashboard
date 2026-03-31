@@ -89,7 +89,7 @@ function formatEndedReason(reason: string | null): string {
 
 // Show raw success_eval — VAPI returns nuanced text, not just true/false
 function EvalCell({ value }: { value: string | null }) {
-  if (!value) return <span className="text-slate-300 text-xs">—</span>
+  if (!value) return <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
 
   const lower = value.toLowerCase()
   const isPass = lower === 'true' || lower === 'success' || lower === 'passed' || lower === '1'
@@ -98,7 +98,9 @@ function EvalCell({ value }: { value: string | null }) {
   if (isPass || isFail) {
     return (
       <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
-        isPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        isPass
+          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+          : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
       }`}>
         {isPass ? 'Pass' : 'Fail'}
       </span>
@@ -108,7 +110,7 @@ function EvalCell({ value }: { value: string | null }) {
   // Longer eval text — show truncated with title tooltip
   return (
     <span
-      className="block text-xs text-slate-600 max-w-[160px] truncate"
+      className="block text-xs text-slate-600 dark:text-slate-400 max-w-[160px] truncate"
       title={value}
     >
       {value}
@@ -118,12 +120,12 @@ function EvalCell({ value }: { value: string | null }) {
 
 function DirectionBadge({ direction }: { direction: string }) {
   const styles: Record<string, string> = {
-    Inbound: 'bg-blue-50 text-blue-700',
-    Outbound: 'bg-violet-50 text-violet-700',
-    Web: 'bg-slate-100 text-slate-600',
+    Inbound: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300',
+    Outbound: 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300',
+    Web: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
   }
   return (
-    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${styles[direction] ?? 'bg-slate-100 text-slate-500'}`}>
+    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${styles[direction] ?? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
       {direction}
     </span>
   )
@@ -146,11 +148,11 @@ function CallIdCell({ id }: { id: string }) {
       title={id}
       className="flex items-center gap-1.5 group text-left"
     >
-      <span className="text-xs font-mono text-slate-500 group-hover:text-slate-800 transition-colors">
+      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
         {short}
       </span>
       <svg
-        className={`w-3 h-3 flex-shrink-0 transition-colors ${copied ? 'text-green-500' : 'text-slate-300 group-hover:text-slate-500'}`}
+        className={`w-3 h-3 flex-shrink-0 transition-colors ${copied ? 'text-green-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400'}`}
         fill="none" stroke="currentColor" viewBox="0 0 24 24"
       >
         {copied
@@ -176,13 +178,13 @@ function RecordingModal({ url, callerName, duration, onClose }: {
       aria-modal="true"
       aria-labelledby="recording-modal-title"
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h2 id="recording-modal-title" className="text-base font-semibold text-slate-900">Call Recording</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{callerName}{duration !== null ? ` · ${formatDuration(duration)}` : ''}</p>
+            <h2 id="recording-modal-title" className="text-base font-semibold text-slate-900 dark:text-white">Call Recording</h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{callerName}{duration !== null ? ` · ${formatDuration(duration)}` : ''}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -198,7 +200,7 @@ function RecordingModal({ url, callerName, duration, onClose }: {
               download
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100"
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -256,13 +258,13 @@ function TranscriptModal({ callId, transcript, summary, initialNotes, onClose, o
       aria-modal="true"
       aria-labelledby="transcript-modal-title"
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 id="transcript-modal-title" className="text-base font-semibold text-slate-900">Call Transcript</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900 w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <h2 id="transcript-modal-title" className="text-base font-semibold text-slate-900 dark:text-white">Call Transcript</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="text-xs text-slate-500 hover:text-slate-800 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-slate-100 flex items-center gap-1.5"
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5"
             >
               <svg className={`w-3.5 h-3.5 ${copied ? 'text-green-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {copied
@@ -272,7 +274,7 @@ function TranscriptModal({ callId, transcript, summary, initialNotes, onClose, o
               </svg>
               <span className={copied ? 'text-green-600' : ''}>{copied ? 'Copied' : 'Copy'}</span>
             </button>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -282,23 +284,23 @@ function TranscriptModal({ callId, transcript, summary, initialNotes, onClose, o
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
           {summary && (
             <div>
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Summary</h3>
-              <p className="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 leading-relaxed">{summary}</p>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Summary</h3>
+              <p className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/30 rounded-lg p-3 leading-relaxed">{summary}</p>
             </div>
           )}
           <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Full Transcript</h3>
-            <pre className="text-xs text-slate-700 whitespace-pre-wrap font-sans leading-relaxed bg-slate-50 rounded-lg p-3">{transcript}</pre>
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Full Transcript</h3>
+            <pre className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-sans leading-relaxed bg-slate-50 dark:bg-slate-800/30 rounded-lg p-3">{transcript}</pre>
           </div>
           {/* Notes */}
           <div>
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Notes</h3>
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Notes</h3>
             <textarea
               rows={3}
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="Add a note about this call…"
-              className="w-full text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400"
+              className="w-full text-sm text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
             <div className="flex justify-end mt-1.5">
               <button
@@ -321,7 +323,7 @@ type SortDir = 'asc' | 'desc'
 
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   return (
-    <svg className={`w-3 h-3 inline ml-1 ${active ? 'text-blue-500' : 'text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className={`w-3 h-3 inline ml-1 ${active ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       {dir === 'asc' || !active
         ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
         : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />}
@@ -363,10 +365,10 @@ const REFRESH_INTERVAL_MS = 60_000
 
 function SkeletonRow() {
   return (
-    <tr className="border-b border-slate-50">
+    <tr className="border-b border-slate-50 dark:border-slate-800">
       {Array.from({ length: 11 }).map((_, i) => (
         <td key={i} className="px-4 py-3">
-          <div className={`h-3.5 rounded bg-slate-100 animate-skeleton ${
+          <div className={`h-3.5 rounded bg-slate-100 dark:bg-slate-800 animate-skeleton ${
             i === 0 ? 'w-16' : i === 2 ? 'w-24' : i === 3 ? 'w-14' : i === 4 ? 'w-28' : 'w-12'
           }`} />
         </td>
@@ -390,6 +392,8 @@ export function CallsTable() {
   const [selectedTranscript, setSelectedTranscript] = useState<{ callId: string; transcript: string; summary: string | null; notes: string | null } | null>(null)
   const [selectedRecording, setSelectedRecording] = useState<{ url: string; callerName: string; duration: number | null } | null>(null)
   const [selectedEndedReason, setSelectedEndedReason] = useState<{ reason: string; summary: string | null; vapiCallId: string } | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   const fetchCalls = useCallback(async (silent = false) => {
     if (!silent) setLoadingCalls(true)
@@ -411,6 +415,24 @@ export function CallsTable() {
     const interval = setInterval(() => fetchCalls(true), REFRESH_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [fetchCalls])
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    setConfirmDeleteId(null)
+    try {
+      const res = await fetch(`/api/calls/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setCalls(prev => prev.filter(c => c.id !== id))
+        toast('Call log deleted', 'success')
+      } else {
+        toast('Failed to delete call log', 'error')
+      }
+    } catch {
+      toast('Failed to delete call log', 'error')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   // Live push: re-fetch silently whenever a call row changes in Supabase
   useRealtimeTable('calls', useCallback(() => fetchCalls(true), [fetchCalls]))
@@ -451,6 +473,29 @@ export function CallsTable() {
 
   return (
     <>
+      {confirmDeleteId && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setConfirmDeleteId(null)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="px-6 pt-6 pb-2">
+              <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white text-center">Delete Call Log</h2>
+              <p className="text-sm text-slate-500 text-center mt-1 mb-5">This call log will be permanently deleted. This cannot be undone.</p>
+            </div>
+            <div className="flex gap-2 px-6 pb-6">
+              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                Cancel
+              </button>
+              <button onClick={() => handleDelete(confirmDeleteId)} className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {selectedTranscript && (
         <TranscriptModal
           callId={selectedTranscript.callId}
@@ -474,10 +519,10 @@ export function CallsTable() {
       )}
       {selectedEndedReason && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setSelectedEndedReason(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-base font-semibold text-slate-900">Call End Details</h2>
-              <button onClick={() => setSelectedEndedReason(null)} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900 w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Call End Details</h2>
+              <button onClick={() => setSelectedEndedReason(null)} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -485,22 +530,22 @@ export function CallsTable() {
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Ended Reason</p>
-                <code className="text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 block font-mono">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Ended Reason</p>
+                <code className="text-sm text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 block font-mono">
                   {selectedEndedReason.reason}
                 </code>
               </div>
               {selectedEndedReason.summary && (
                 <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Call Summary</p>
-                  <p className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 leading-relaxed">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Call Summary</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 leading-relaxed">
                     {selectedEndedReason.summary}
                   </p>
                 </div>
               )}
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">VAPI Call ID</p>
-                <code className="text-xs text-slate-500 font-mono">{selectedEndedReason.vapiCallId}</code>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">VAPI Call ID</p>
+                <code className="text-xs text-slate-500 dark:text-slate-400 font-mono">{selectedEndedReason.vapiCallId}</code>
               </div>
             </div>
           </div>
@@ -514,25 +559,25 @@ export function CallsTable() {
           placeholder="Search by name, phone, or call ID…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full max-w-xs px-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full max-w-xs px-4 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
         />
         <div className="flex items-center gap-2">
-          <label htmlFor="date-from" className="text-xs text-slate-500 whitespace-nowrap">From</label>
+          <label htmlFor="date-from" className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">From</label>
           <input id="date-from" type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
-          <label htmlFor="date-to" className="text-xs text-slate-500 whitespace-nowrap">To</label>
+            className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200" />
+          <label htmlFor="date-to" className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">To</label>
           <input id="date-to" type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-            className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+            className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200" />
           {(dateFrom || dateTo) && (
             <button onClick={() => { setDateFrom(''); setDateTo('') }}
-              className="text-xs text-slate-400 hover:text-slate-700 px-2 py-1 rounded hover:bg-slate-100">
+              className="text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
               Clear
             </button>
           )}
         </div>
         <div className="ml-auto flex items-center gap-2">
           {lastRefreshed && (
-            <span className="text-xs text-slate-400 hidden sm:block">
+            <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:block">
               Updated {lastRefreshed.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
@@ -540,15 +585,15 @@ export function CallsTable() {
             onClick={() => fetchCalls(false)}
             disabled={loadingCalls}
             title="Refresh"
-            className="flex items-center justify-center w-8 h-8 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-40"
+            className="flex items-center justify-center w-8 h-8 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-40"
           >
-            <svg className={`w-3.5 h-3.5 text-slate-500 ${loadingCalls ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 ${loadingCalls ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
           <button
             onClick={() => exportCSV(filtered)}
-            className="flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -562,20 +607,20 @@ export function CallsTable() {
       <div className="lg:hidden space-y-3">
         {loadingCalls ? (
           Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm dark:shadow-slate-900 space-y-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-slate-100 animate-skeleton flex-shrink-0" />
+                <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 animate-skeleton flex-shrink-0" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-4 w-32 rounded bg-slate-100 animate-skeleton" />
-                  <div className="h-3 w-24 rounded bg-slate-100 animate-skeleton" />
+                  <div className="h-4 w-32 rounded bg-slate-100 dark:bg-slate-800 animate-skeleton" />
+                  <div className="h-3 w-24 rounded bg-slate-100 dark:bg-slate-800 animate-skeleton" />
                 </div>
-                <div className="h-5 w-16 rounded-full bg-slate-100 animate-skeleton" />
+                <div className="h-5 w-16 rounded-full bg-slate-100 dark:bg-slate-800 animate-skeleton" />
               </div>
-              <div className="h-3 w-40 rounded bg-slate-100 animate-skeleton" />
+              <div className="h-3 w-40 rounded bg-slate-100 dark:bg-slate-800 animate-skeleton" />
             </div>
           ))
         ) : paginated.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900">
             <EmptyState
               illustration="calls"
               title="No calls yet"
@@ -589,34 +634,34 @@ export function CallsTable() {
               ? callerName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
               : '?'
             return (
-              <div key={call.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3">
+              <div key={call.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm dark:shadow-slate-900 space-y-3">
                 {/* Header row */}
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-semibold flex-shrink-0">
                     {initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-slate-900 truncate">
-                      {callerName || <span className="text-slate-400">Unknown</span>}
+                    <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                      {callerName || <span className="text-slate-400 dark:text-slate-500">Unknown</span>}
                     </div>
-                    <div className="text-xs font-mono text-slate-500">{formatPhone(call.phone_number)}</div>
+                    <div className="text-xs font-mono text-slate-500 dark:text-slate-400">{formatPhone(call.phone_number)}</div>
                   </div>
                   <DirectionBadge direction={callDirection(call)} />
                 </div>
 
                 {/* Meta row */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                   <span>{formatDateTime(call.started_at)}</span>
                   {call.duration_seconds !== null && <span>{formatDuration(call.duration_seconds)}</span>}
                   {call.cost_cents !== null && <span className="font-mono">{formatCost(call.cost_cents)}</span>}
                 </div>
 
                 {/* Actions row */}
-                <div className="flex items-center gap-3 pt-1 border-t border-slate-50">
+                <div className="flex items-center gap-3 pt-1 border-t border-slate-50 dark:border-slate-800">
                   {call.ended_reason && (
                     <button
                       onClick={() => setSelectedEndedReason({ reason: call.ended_reason!, summary: call.summary, vapiCallId: call.vapi_call_id })}
-                      className="text-xs text-slate-500 hover:text-slate-900 hover:underline underline-offset-2 flex-1 text-left truncate"
+                      className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline underline-offset-2 flex-1 text-left truncate"
                     >
                       {formatEndedReason(call.ended_reason)}
                     </button>
@@ -648,38 +693,39 @@ export function CallsTable() {
       </div>
 
       {/* Table — hidden on mobile */}
-      <div className="hidden lg:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="hidden lg:block bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-100">
-            <thead className="bg-slate-50">
+          <table className="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
+            <thead className="bg-slate-50 dark:bg-slate-950">
               <tr>
                 {staticCols.slice(0, 4).map(col => (
-                  <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                  <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
                     {col}
                   </th>
                 ))}
                 {/* Sortable: Date, Duration */}
                 {SORTABLE.slice(0, 2).map(({ label, key }) => (
-                  <th key={key} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
-                    <button onClick={() => toggleSort(key)} className="flex items-center gap-0.5 hover:text-slate-800 transition-colors">
+                  <th key={key} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
+                    <button onClick={() => toggleSort(key)} className="flex items-center gap-0.5 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
                       {label} <SortIcon active={sortKey === key} dir={sortDir} />
                     </button>
                   </th>
                 ))}
                 {staticCols.slice(4).map(col => (
-                  <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                  <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
                     {col}
                   </th>
                 ))}
                 {/* Cost last — sortable */}
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
-                  <button onClick={() => toggleSort('cost_cents')} className="flex items-center gap-0.5 hover:text-slate-800 transition-colors">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
+                  <button onClick={() => toggleSort('cost_cents')} className="flex items-center gap-0.5 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
                     Cost <SortIcon active={sortKey === 'cost_cents'} dir={sortDir} />
                   </button>
                 </th>
+                <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {loadingCalls ? (
                 Array.from({ length: pageSize }).map((_, i) => <SkeletonRow key={i} />)
               ) : filtered.length === 0 ? (
@@ -695,32 +741,32 @@ export function CallsTable() {
               ) : (paginated.map(call => {
                   const callerName = [call.clients?.first_name, call.clients?.last_name].filter(Boolean).join(' ') || call.phone_number
                   return (
-                    <tr key={call.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={call.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
 
                       {/* Call ID */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <CallIdCell id={call.vapi_call_id} />
                       </td>
                       {/* Phone */}
-                      <td className="px-4 py-3 text-sm font-mono text-slate-600 whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         {formatPhone(call.phone_number)}
                       </td>
                       {/* Name */}
-                      <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
                         {callerName !== call.phone_number
                           ? callerName
-                          : <span className="text-slate-300">—</span>}
+                          : <span className="text-slate-300 dark:text-slate-600">—</span>}
                       </td>
                       {/* Direction */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <DirectionBadge direction={callDirection(call)} />
                       </td>
                       {/* Date (sortable) */}
-                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {formatDateTime(call.started_at)}
                       </td>
                       {/* Duration (sortable) */}
-                      <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         {formatDuration(call.duration_seconds)}
                       </td>
                       {/* Ended Reason — clickable for details */}
@@ -728,12 +774,12 @@ export function CallsTable() {
                         {call.ended_reason ? (
                           <button
                             onClick={() => setSelectedEndedReason({ reason: call.ended_reason!, summary: call.summary, vapiCallId: call.vapi_call_id })}
-                            className="text-xs text-slate-500 hover:text-slate-900 hover:underline underline-offset-2 transition-colors text-left"
+                            className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline underline-offset-2 transition-colors text-left"
                           >
                             {formatEndedReason(call.ended_reason)}
                           </button>
                         ) : (
-                          <span className="text-slate-300 text-xs">—</span>
+                          <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
                         )}
                       </td>
                       {/* Transcript */}
@@ -746,7 +792,7 @@ export function CallsTable() {
                             View
                           </button>
                         ) : (
-                          <span className="text-slate-300 text-xs">—</span>
+                          <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
                         )}
                       </td>
                       {/* Recording */}
@@ -759,7 +805,7 @@ export function CallsTable() {
                             Play
                           </button>
                         ) : (
-                          <span className="text-slate-300 text-xs">—</span>
+                          <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
                         )}
                       </td>
                       {/* Eval */}
@@ -767,8 +813,21 @@ export function CallsTable() {
                         <EvalCell value={call.success_eval} />
                       </td>
                       {/* Cost — last */}
-                      <td className="px-4 py-3 text-xs font-mono text-slate-500 whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {formatCost(call.cost_cents)}
+                      </td>
+                      {/* Delete */}
+                      <td className="px-2 py-3 whitespace-nowrap">
+                        <button
+                          onClick={() => setConfirmDeleteId(call.id)}
+                          disabled={deletingId === call.id}
+                          title="Delete call log"
+                          className="p-1.5 rounded text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-30"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </td>
                     </tr>
                   )
@@ -780,14 +839,14 @@ export function CallsTable() {
 
       {/* Pagination footer */}
       {filtered.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500 dark:text-slate-400">
           {/* Rows per page */}
           <div className="flex items-center gap-2">
             <span className="text-xs">Rows per page</span>
             <select
               value={pageSize}
               onChange={e => setPageSize(Number(e.target.value))}
-              className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {PAGE_SIZE_OPTIONS.map(n => (
                 <option key={n} value={n}>{n}</option>
@@ -804,7 +863,7 @@ export function CallsTable() {
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 aria-label="Previous page"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -817,7 +876,7 @@ export function CallsTable() {
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 aria-label="Next page"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

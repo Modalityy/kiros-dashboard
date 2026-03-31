@@ -32,7 +32,7 @@ type BadgeVariant = 'connected' | 'not_configured' | 'via_vapi'
 function StatusBadge({ variant }: { variant: BadgeVariant }) {
   if (variant === 'connected') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-green-50 text-green-700">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700">
         <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
         Connected
       </span>
@@ -40,14 +40,14 @@ function StatusBadge({ variant }: { variant: BadgeVariant }) {
   }
   if (variant === 'via_vapi') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-violet-50 text-violet-700">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-violet-50 dark:bg-violet-900/20 text-violet-700">
         <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
         Via VAPI
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
       <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
       Not configured
     </span>
@@ -57,9 +57,9 @@ function StatusBadge({ variant }: { variant: BadgeVariant }) {
 function ReadOnlyRow({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
   const display = value ?? <span className="text-slate-300 italic">not set</span>
   return (
-    <div className="px-6 py-3 flex items-center justify-between gap-4 bg-slate-50/50">
+    <div className="px-6 py-3 flex items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/30">
       <span className="text-xs text-slate-400 flex-shrink-0">{label}</span>
-      <span className={`text-xs text-right truncate max-w-xs ${mono ? 'font-mono text-slate-600' : 'text-slate-500'}`}>
+      <span className={`text-xs text-right truncate max-w-xs ${mono ? 'font-mono text-slate-600 dark:text-slate-400' : 'text-slate-500'}`}>
         {display}
       </span>
     </div>
@@ -70,16 +70,16 @@ function SecretRow({ label, value }: { label: string; value: string | null }) {
   const [visible, setVisible] = useState(false)
   if (!value) return <ReadOnlyRow label={label} value={null} />
   return (
-    <div className="px-6 py-3 flex items-center justify-between gap-4 bg-slate-50/50">
+    <div className="px-6 py-3 flex items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/30">
       <span className="text-xs text-slate-400 flex-shrink-0">{label}</span>
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-xs font-mono text-slate-600 truncate max-w-xs">
+        <span className="text-xs font-mono text-slate-600 dark:text-slate-400 truncate max-w-xs">
           {visible ? value : '••••••••••••••••'}
         </span>
         <button
           onClick={() => setVisible(v => !v)}
           aria-label={visible ? 'Hide value' : 'Show value'}
-          className="flex-shrink-0 text-slate-400 hover:text-slate-700 transition-colors p-1 rounded hover:bg-slate-200"
+          className="flex-shrink-0 text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-600"
         >
           {visible ? (
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,7 +141,7 @@ function EditableKeyRow({
   const isError = status === 'error'
 
   return (
-    <div className="px-6 py-3 border-t border-slate-100 space-y-1.5">
+    <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
       <div className="flex items-center gap-3">
         <span className="text-xs text-slate-500 flex-shrink-0 w-32">{label}</span>
         <input
@@ -150,10 +150,10 @@ function EditableKeyRow({
           value={value}
           placeholder={isSaved ? 'Key saved — paste to update' : (placeholder ?? 'Paste API key…')}
           onChange={handleChange}
-          className={`flex-1 min-w-0 text-xs font-mono border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 bg-white transition-colors ${
+          className={`flex-1 min-w-0 text-xs font-mono border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 bg-white dark:bg-slate-800 transition-colors ${
             isSaved ? 'border-green-300 focus:ring-green-400 bg-green-50/40 placeholder:text-green-600'
             : isError ? 'border-red-300 focus:ring-red-400'
-            : 'border-slate-200 focus:ring-blue-500'
+            : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500'
           }`}
         />
         <button
@@ -163,7 +163,7 @@ function EditableKeyRow({
             isSaved ? 'bg-green-100 text-green-700 cursor-default'
             : isError ? 'bg-red-100 text-red-700'
             : isDirty && !saving ? 'bg-blue-600 hover:bg-blue-700 text-white'
-            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            : 'bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
           }`}
         >
           {saving ? 'Saving…' : isSaved ? '✓ Saved' : isError ? 'Retry' : 'Save'}
@@ -210,7 +210,7 @@ function IntegrationCard({
   savedKey: string | null
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden">
       <div className="px-6 py-5 flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${accentColor}`}>
@@ -218,7 +218,7 @@ function IntegrationCard({
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <h2 className="text-sm font-semibold text-slate-900">{name}</h2>
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{name}</h2>
               <StatusBadge variant={badge} />
             </div>
             <p className="text-xs text-slate-400 mt-0.5">{description}</p>
@@ -239,7 +239,7 @@ function IntegrationCard({
         )}
       </div>
 
-      <div className="border-t border-slate-100 divide-y divide-slate-50">
+      <div className="border-t border-slate-100 dark:border-slate-800 divide-y divide-slate-50 dark:divide-slate-800">
         {readOnlyRows.map((row) =>
           row.secret
             ? <SecretRow key={row.label} label={row.label} value={row.value ?? null} />
@@ -248,7 +248,7 @@ function IntegrationCard({
       </div>
 
       {editableRows.length > 0 && (
-        <div className="border-t border-slate-200 bg-slate-50/30">
+        <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30">
           <div className="px-6 pt-3 pb-1">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">API Keys</p>
           </div>
@@ -329,27 +329,27 @@ export default function IntegrationsPage() {
     return (
       <div className="p-8 animate-fade-in-up">
         <div className="mb-8">
-          <div className="h-7 w-36 rounded-lg bg-slate-100 animate-skeleton mb-2" />
-          <div className="h-4 w-96 rounded bg-slate-100 animate-skeleton" />
+          <div className="h-7 w-36 rounded-lg bg-slate-100 dark:bg-slate-700 animate-skeleton mb-2" />
+          <div className="h-4 w-96 rounded bg-slate-100 dark:bg-slate-700 animate-skeleton" />
         </div>
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden">
               <div className="px-6 py-5 flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl bg-slate-100 animate-skeleton flex-shrink-0" />
+                <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-700 animate-skeleton flex-shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-3">
-                    <div className="h-4 w-24 rounded bg-slate-100 animate-skeleton" />
-                    <div className="h-5 w-20 rounded-full bg-slate-100 animate-skeleton" />
+                    <div className="h-4 w-24 rounded bg-slate-100 dark:bg-slate-700 animate-skeleton" />
+                    <div className="h-5 w-20 rounded-full bg-slate-100 dark:bg-slate-700 animate-skeleton" />
                   </div>
-                  <div className="h-3 w-72 rounded bg-slate-100 animate-skeleton" />
+                  <div className="h-3 w-72 rounded bg-slate-100 dark:bg-slate-700 animate-skeleton" />
                 </div>
               </div>
-              <div className="border-t border-slate-100 divide-y divide-slate-50">
+              <div className="border-t border-slate-100 dark:border-slate-800 divide-y divide-slate-50 dark:divide-slate-800">
                 {Array.from({ length: 2 }).map((_, j) => (
                   <div key={j} className="px-6 py-3 flex items-center justify-between">
-                    <div className="h-3 w-24 rounded bg-slate-100 animate-skeleton" />
-                    <div className="h-3 w-40 rounded bg-slate-100 animate-skeleton" />
+                    <div className="h-3 w-24 rounded bg-slate-100 dark:bg-slate-700 animate-skeleton" />
+                    <div className="h-3 w-40 rounded bg-slate-100 dark:bg-slate-700 animate-skeleton" />
                   </div>
                 ))}
               </div>
@@ -369,7 +369,7 @@ export default function IntegrationsPage() {
   return (
     <div className="p-8 animate-fade-in-up">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Integrations</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Integrations</h1>
         <p className="text-slate-500 text-sm mt-1">
           API keys entered here are stored in your Supabase settings table.
           Environment variables (Vercel) are read-only and shown for reference.

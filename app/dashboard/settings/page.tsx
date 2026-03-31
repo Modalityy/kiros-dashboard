@@ -167,24 +167,24 @@ export default function SettingsPage() {
     return (
       <div className="p-8 animate-fade-in-up max-w-3xl">
         <div className="mb-8">
-          <div className="h-7 w-28 rounded-lg bg-slate-100 animate-skeleton mb-2" />
-          <div className="h-4 w-80 rounded bg-slate-100 animate-skeleton" />
+          <div className="h-7 w-28 rounded-lg bg-slate-100 dark:bg-slate-700 animate-skeleton mb-2" />
+          <div className="h-4 w-80 rounded bg-slate-100 dark:bg-slate-700 animate-skeleton" />
         </div>
         {/* Placeholder chip row */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4 mb-8 flex flex-wrap gap-2">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-5 py-4 mb-8 flex flex-wrap gap-2">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-5 w-20 rounded bg-blue-100 animate-skeleton" />
+            <div key={i} className="h-5 w-20 rounded bg-blue-100 dark:bg-blue-800 animate-skeleton" />
           ))}
         </div>
         {/* Cards */}
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100">
-              <div className="h-4 w-36 rounded bg-slate-100 animate-skeleton mb-1.5" />
-              <div className="h-3 w-56 rounded bg-slate-100 animate-skeleton" />
+          <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 mb-6 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="h-4 w-36 rounded bg-slate-100 dark:bg-slate-700 animate-skeleton mb-1.5" />
+              <div className="h-3 w-56 rounded bg-slate-100 dark:bg-slate-700 animate-skeleton" />
             </div>
             <div className="p-4">
-              <div className="h-24 rounded-lg bg-slate-100 animate-skeleton" />
+              <div className="h-24 rounded-lg bg-slate-100 dark:bg-slate-700 animate-skeleton" />
             </div>
           </div>
         ))}
@@ -221,33 +221,33 @@ export default function SettingsPage() {
       )}
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Assistant</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Assistant</h1>
         <p className="text-slate-500 text-sm mt-1">
           Edit Eh-va's system prompts and messages. Changes take effect on the next call.
         </p>
       </div>
 
       {/* Placeholder reference */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl px-5 py-4 mb-8">
-        <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Available Placeholders</p>
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-5 py-4 mb-8">
+        <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-2">Available Placeholders</p>
         <div className="flex flex-wrap gap-2">
           {['{firstName}', '{lastName}', '{email}', '{zoomDisplay}', '{objective_1}', '{objective_2}', '{objective_3}', '{objective_4}'].map(p => (
-            <code key={p} className="text-xs bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded font-mono">{p}</code>
+            <code key={p} className="text-xs bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-mono">{p}</code>
           ))}
         </div>
       </div>
 
       {/* LLM model selector */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Language Model</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Language Model</h2>
             <p className="text-xs text-slate-400 mt-0.5">Selects the OpenAI model used by VAPI's native LLM provider.</p>
           </div>
           <button
             onClick={fetchModels}
             disabled={fetchingModels}
-            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
           >
             {fetchingModels ? (
               <span className="w-3.5 h-3.5 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
@@ -261,19 +261,19 @@ export default function SettingsPage() {
         </div>
         <div className="p-6 space-y-4">
           {fetchModelsError && (
-            <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{fetchModelsError}</p>
+            <p className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg px-3 py-2">{fetchModelsError}</p>
           )}
 
           {/* Live model list (shown after fetch) */}
           {openaiModels.length > 0 ? (
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
                 Select model <span className="text-slate-400 font-normal">({openaiModels.length} available)</span>
               </label>
               <select
                 value={getLLMModel()}
                 onChange={e => setValues(v => ({ ...v, llm_model: e.target.value }))}
-                className="w-full max-w-sm text-sm font-mono text-slate-700 bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full max-w-sm text-sm font-mono text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {openaiModels.map(id => (
                   <option key={id} value={id}>{id}</option>
@@ -297,11 +297,11 @@ export default function SettingsPage() {
                     }}
                     className={`text-left px-4 py-3 rounded-xl border transition-all ${
                       active
-                        ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-400'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-400'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <div className={`text-sm font-semibold ${active ? 'text-blue-700' : 'text-slate-800'}`}>{m.label}</div>
+                    <div className={`text-sm font-semibold ${active ? 'text-blue-700 dark:text-blue-300' : 'text-slate-800 dark:text-slate-200'}`}>{m.label}</div>
                     <div className={`text-xs mt-0.5 ${active ? 'text-blue-500' : 'text-slate-400'}`}>{m.description}</div>
                   </button>
                 )
@@ -312,20 +312,20 @@ export default function SettingsPage() {
           {/* Custom text input */}
           {selectedPreset === '__custom__' && openaiModels.length === 0 && (
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">Custom Model ID</label>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Custom Model ID</label>
               <input
                 type="text"
                 value={customModelValue}
                 onChange={e => setValues(v => ({ ...v, llm_model: e.target.value }))}
                 placeholder="e.g. gpt-5, o4-mini…"
-                className="w-full max-w-sm text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full max-w-sm text-sm font-mono text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           )}
 
           <div className="flex items-center gap-2 pt-1">
             <span className="text-xs text-slate-400">Active:</span>
-            <code className="text-xs font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+            <code className="text-xs font-mono bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded">
               {getLLMModel() || <span className="italic text-slate-400">not set</span>}
             </code>
             {isLLMDirty && <span className="text-xs text-amber-600 font-medium">· unsaved</span>}
@@ -334,20 +334,20 @@ export default function SettingsPage() {
       </div>
 
       {/* Voice settings */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Voice Settings</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Voice Settings</h2>
           <p className="text-xs text-slate-400 mt-0.5">Controls ElevenLabs voice output. Changes take effect on the next call.</p>
         </div>
         <div className="p-6 space-y-5">
           {/* Voice ID */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Voice ID</label>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">Voice ID</label>
             <input
               type="text"
               value={getVoice('voice_id')}
               onChange={e => setValues(v => ({ ...v, voice_id: e.target.value }))}
-              className="w-full max-w-sm text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full max-w-sm text-sm font-mono text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="ElevenLabs voice ID"
             />
             <p className="text-xs text-slate-400 mt-1">Find this in your ElevenLabs voice library.</p>
@@ -356,8 +356,8 @@ export default function SettingsPage() {
           {/* Speed */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-600">Speed</label>
-              <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Speed</label>
+              <span className="text-xs font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
                 {parseFloat(getVoice('voice_speed')).toFixed(2)}×
               </span>
             </div>
@@ -379,8 +379,8 @@ export default function SettingsPage() {
           {/* Stability */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-600">Stability</label>
-              <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Stability</label>
+              <span className="text-xs font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
                 {parseFloat(getVoice('voice_stability')).toFixed(2)}
               </span>
             </div>
@@ -402,10 +402,10 @@ export default function SettingsPage() {
       </div>
 
       {/* Knowledge Base */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden mb-6">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Knowledge Base</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Knowledge Base</h2>
             <p className="text-xs text-slate-400 mt-0.5">Plain text injected as context into every call. Use this for FAQs, product info, policies — anything Eh-va should know.</p>
           </div>
           {isKBDirty && (
@@ -418,7 +418,7 @@ export default function SettingsPage() {
             value={values['knowledge_base'] ?? ''}
             onChange={e => setValues(v => ({ ...v, knowledge_base: e.target.value }))}
             placeholder="Enter reference material here. This text is passed directly to the assistant as context on every call."
-            className="w-full text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all leading-relaxed placeholder:text-slate-400 placeholder:font-sans"
+            className="w-full text-sm font-mono text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all leading-relaxed placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:font-sans"
             spellCheck={false}
           />
           <p className="text-xs text-slate-400 mt-1.5">{(values['knowledge_base'] ?? '').length.toLocaleString()} characters</p>
@@ -427,15 +427,15 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
         {SECTIONS.map(({ key, label, description, rows, defaultValue }) => (
-          <div key={key} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
+          <div key={key} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">{label}</h2>
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{label}</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{description}</p>
               </div>
               <button
                 onClick={() => setValues(v => ({ ...v, [key]: defaultValue }))}
-                className="text-xs text-slate-400 hover:text-slate-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100 flex-shrink-0"
+                className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 flex-shrink-0"
               >
                 Reset to Default
               </button>
@@ -445,7 +445,7 @@ export default function SettingsPage() {
                 rows={rows}
                 value={getValue(key, defaultValue)}
                 onChange={e => setValues(v => ({ ...v, [key]: e.target.value }))}
-                className="w-full text-sm font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg p-3 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all leading-relaxed"
+                className="w-full text-sm font-mono text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all leading-relaxed"
                 spellCheck={false}
               />
             </div>

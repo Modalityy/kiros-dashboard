@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { NavLinks } from '@/components/NavLinks'
 import { SignOutButton } from '@/components/SignOutButton'
+import { useTheme } from '@/components/ThemeProvider'
 
 type Props = {
   userName: string | null | undefined
@@ -17,6 +18,7 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
   const [open, setOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
+  const { theme, toggle: toggleTheme } = useTheme()
 
   useEffect(() => {
     try { setCollapsed(localStorage.getItem(COLLAPSED_KEY) === 'true') } catch {}
@@ -130,6 +132,25 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
             <div className="text-slate-500 text-xs truncate whitespace-nowrap">{userEmail}</div>
           </div>
         </div>
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          className={`w-full flex items-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-xs font-medium ${collapsed && isCollapsible ? 'justify-center p-2' : 'gap-2 px-3 py-2'}`}
+        >
+          {theme === 'dark' ? (
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          )}
+          <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${collapsed && isCollapsible ? 'max-w-0 opacity-0' : 'max-w-[120px] opacity-100'}`}>
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </span>
+        </button>
         <SignOutButton collapsed={collapsed && isCollapsible} />
       </div>
     </>
