@@ -26,7 +26,11 @@
       "Bash(cmd /c \"npm list -g vercel\")",
       "Bash(cmd /c \"where vercel\")",
       "Bash(cmd /c \"npm install -g vercel\")",
-      "Bash(cmd /c \"vercel --version\")"
+      "Bash(cmd /c \"vercel --version\")",
+      "Bash(npm show:*)",
+      "Bash(node -e \"console.log\\(require\\(''./node_modules/nodemailer/package.json''\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\(''''./node_modules/next/package.json''''\\).version\\)\")",
+      "Bash(npm run:*)"
     ]
   }
 }
