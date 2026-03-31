@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useRealtimeTable } from '@/hooks/useRealtimeTable'
 
 type Client = {
   id: string
@@ -316,12 +317,16 @@ export function ClientsTable() {
   const [confirmDelete, setConfirmDelete] = useState<Client | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const fetchClients = useCallback(() => {
     fetch('/api/clients')
       .then(r => r.json())
       .then(data => { setClients(Array.isArray(data) ? data : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
+
+  useEffect(() => { fetchClients() }, [fetchClients])
+
+  useRealtimeTable('clients', fetchClients)
 
   const filtered = clients.filter((c) => {
     const q = search.toLowerCase()
