@@ -41,42 +41,55 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
   const sidebarContent = (isCollapsible: boolean) => (
     <>
       {/* Logo + collapse toggle */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-800 overflow-hidden">
-        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-          M
-        </div>
-        <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${collapsed && isCollapsible ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'}`}>
-          <div className="text-white font-semibold text-sm leading-tight whitespace-nowrap">Meridian</div>
-          <div className="text-slate-400 text-xs whitespace-nowrap">Console</div>
-        </div>
-        {/* Desktop collapse toggle — always visible, chevron rotates */}
-        {isCollapsible && (
+      {isCollapsible && collapsed ? (
+        /* Collapsed header: just the expand button, centered */
+        <div className="flex items-center justify-center py-4 border-b border-slate-800">
           <button
             onClick={toggleCollapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="ml-auto flex-shrink-0 text-slate-400 hover:text-white transition-colors p-1 rounded hover:bg-slate-800"
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+            className="text-slate-400 hover:text-white transition-colors p-1.5 rounded hover:bg-slate-800"
           >
-            <svg
-              className={`w-4 h-4 transition-transform duration-300 ease-in-out ${collapsed ? 'rotate-180' : ''}`}
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        /* Expanded header: M logo + name + collapse toggle */
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-800">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            M
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-white font-semibold text-sm leading-tight">Meridian</div>
+            <div className="text-slate-400 text-xs">Console</div>
+          </div>
+          {isCollapsible && (
+            <button
+              onClick={toggleCollapsed}
+              aria-label="Collapse sidebar"
+              className="flex-shrink-0 text-slate-400 hover:text-white transition-colors p-1 rounded hover:bg-slate-800"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
-        {/* Mobile close */}
-        {!isCollapsible && (
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Close navigation"
-            className="ml-auto text-slate-400 hover:text-white transition-colors lg:hidden"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
-      </div>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+          {/* Mobile close */}
+          {!isCollapsible && (
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Close navigation"
+              className="ml-auto text-slate-400 hover:text-white transition-colors lg:hidden"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ⌘K trigger */}
       <div className="px-3 pt-3 pb-1">
