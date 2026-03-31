@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRealtimeTable } from '@/hooks/useRealtimeTable'
 import { EmptyState } from '@/components/EmptyState'
 
@@ -601,7 +601,7 @@ export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onR
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [localBookings, setLocalBookings] = useState(bookings)
 
-  useMemo(() => setLocalBookings(bookings), [bookings])
+  useEffect(() => { setLocalBookings(bookings) }, [bookings])
 
   useRealtimeTable('bookings', useCallback(() => onRefresh(), [onRefresh]))
 

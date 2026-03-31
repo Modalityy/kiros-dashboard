@@ -1,20 +1,28 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { BookingsTabs } from '@/components/BookingsTabs'
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const loadingRef = useRef(true)
 
-  const fetchBookings = useCallback(() => {
+  const fetchBookings = useCallback((silent = false) => {
     fetch('/api/bookings')
       .then(r => r.json())
-      .then(data => { setBookings(Array.isArray(data) ? data : []); setLoading(false) })
-      .catch(() => setLoading(false))
+      .then(data => {
+        setBookings(Array.isArray(data) ? data : [])
+        if (!silent) { setLoading(false); loadingRef.current = false }
+      })
+      .catch(() => { if (!silent) setLoading(false) })
   }, [])
 
-  useEffect(() => { fetchBookings() }, [fetchBookings])
+  useEffect(() => {
+    fetchBookings()
+    const interval = setInterval(() => fetchBookings(true), 60_000)
+    return () => clearInterval(interval)
+  }, [fetchBookings])
 
   if (loading) {
     return (
@@ -71,7 +79,7 @@ export default function BookingsPage() {
 
   return (
     <div className="p-8 animate-fade-in-up">
-      <BookingsTabs bookings={bookings} onRefresh={fetchBookings} />
+      <BookingsTabs bookings={bookings} onRefresh={() => fetchBookings(true)} />
     </div>
   )
 }
