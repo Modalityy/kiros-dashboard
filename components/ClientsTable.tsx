@@ -429,12 +429,6 @@ export function ClientsTable() {
         </div>
       )}
 
-      {loading && (
-        <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
-          <span className="w-4 h-4 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
-          Loading clients…
-        </div>
-      )}
 
       {deleteError && (
         <div className="mb-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-2">
@@ -478,7 +472,18 @@ export function ClientsTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i}>
+                    {Array.from({ length: 10 }).map((__, j) => (
+                      <td key={j} className="px-4 py-3">
+                        <div className={`h-3.5 rounded bg-slate-100 animate-skeleton ${j === 0 ? 'w-28' : j === 1 ? 'w-24' : j === 2 ? 'w-32' : 'w-16'}`} />
+                      </td>
+                    ))}
+                    <td className="px-4 py-3"><div className="h-7 w-7 rounded-lg bg-slate-100 animate-skeleton" /></td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={11}>
                     <div className="flex flex-col items-center justify-center py-16 text-center">
