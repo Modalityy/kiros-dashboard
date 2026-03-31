@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
+import { NavigationProgress } from '@/components/NavigationProgress'
 
 export default async function DashboardLayout({
   children,
@@ -13,6 +14,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
+      <NavigationProgress />
       <Sidebar
         userName={session.user?.name}
         userEmail={session.user?.email}
@@ -20,7 +22,7 @@ export default async function DashboardLayout({
       />
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto pt-14 lg:pt-0">
+      <main className="flex-1 overflow-auto pt-14 lg:pt-0 animate-fade-in">
         {children}
       </main>
     </div>

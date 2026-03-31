@@ -164,58 +164,19 @@ function EditBookingModal({
 
 // ── List Tab ──────────────────────────────────────────────────────────────────
 
-function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () => void }) {
-  const now = new Date()
-  const upcoming = bookings.filter(b =>
-    b.booking_type !== 'cancel' &&
-    b.status !== 'cancelled' &&
-    b.status !== 'completed' &&
-    new Date(b.scheduled_at) > now
-  )
-  const past = bookings.filter(b =>
-    b.booking_type === 'cancel' ||
-    b.status === 'cancelled' ||
-    b.status === 'completed' ||
-    new Date(b.scheduled_at) <= now
-  )
-
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
-  const [localBookings, setLocalBookings] = useState(bookings)
-  const [cancellingId, setCancellingId] = useState<string | null>(null)
-  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
-
-  useMemo(() => setLocalBookings(bookings), [bookings])
-
-  const upcomingLocal = localBookings.filter(b =>
-    b.booking_type !== 'cancel' &&
-    b.status !== 'cancelled' &&
-    b.status !== 'completed' &&
-    new Date(b.scheduled_at) > now
-  )
-  const pastLocal = localBookings.filter(b =>
-    b.booking_type === 'cancel' ||
-    b.status === 'cancelled' ||
-    b.status === 'completed' ||
-    new Date(b.scheduled_at) <= now
-  )
-
-  function handleSaved(id: string, newIso: string) {
-    setLocalBookings(prev => prev.map(b => b.id === id ? { ...b, scheduled_at: newIso } : b))
-    onRefresh()
-  }
-
-  async function confirmCancel() {
-    if (!confirmCancelId) return
-    setCancellingId(confirmCancelId)
-    setConfirmCancelId(null)
-    const res = await fetch(`/api/bookings/${confirmCancelId}`, { method: 'DELETE' })
-    setCancellingId(null)
-    if (res.ok) {
-      setLocalBookings(prev => prev.map(b => b.id === confirmCancelId ? { ...b, status: 'cancelled' } : b))
-      onRefresh()
-    }
-  }
-
+function ListView({
+  upcoming,
+  past,
+  cancellingId,
+  onEdit,
+  onCancel,
+}: {
+  upcoming: Booking[]
+  past: Booking[]
+  cancellingId: string | null
+  onEdit: (b: Booking) => void
+  onCancel: (id: string) => void
+}) {
   const TableSection = ({
     title,
     rows,
@@ -227,16 +188,17 @@ function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () 
     emptyText: string
     showActions?: boolean
   }) => (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
-      <div className="px-6 py-4 border-b border-slate-100">
-        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-5 overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">{title}</h2>
+        <span className="text-xs text-slate-400 font-medium">{rows.length}</span>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-100">
-          <thead className="bg-slate-50">
+          <thead className="bg-slate-50/70">
             <tr>
               {['Client', 'Phone', 'Email', 'Scheduled', 'Type', ...(showActions ? ['Actions'] : [])].map(col => (
-                <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">
+                <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide whitespace-nowrap">
                   {col}
                 </th>
               ))}
@@ -245,11 +207,11 @@ function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () 
           <tbody className="divide-y divide-slate-50">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={showActions ? 6 : 5} className="py-12 text-center text-sm text-slate-400">{emptyText}</td>
+                <td colSpan={showActions ? 6 : 5} className="py-10 text-center text-sm text-slate-400">{emptyText}</td>
               </tr>
             ) : (
               rows.map(b => (
-                <tr key={b.id} className="hover:bg-slate-50 transition-colors">
+                <tr key={b.id} className="hover:bg-slate-50/60 transition-colors group">
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-xs flex-shrink-0">
@@ -260,23 +222,23 @@ function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () 
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600 font-mono whitespace-nowrap">{b.clients?.phone_number}</td>
-                  <td className="px-4 py-3 text-sm text-slate-600 whitespace-nowrap">{b.email ?? b.clients?.email ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">{formatDateTime(b.scheduled_at)}</td>
+                  <td className="px-4 py-3 text-sm text-slate-500 font-mono whitespace-nowrap">{b.clients?.phone_number}</td>
+                  <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">{b.email ?? b.clients?.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-slate-700 whitespace-nowrap">{formatDateTime(b.scheduled_at)}</td>
                   <td className="px-4 py-3 whitespace-nowrap"><TypeBadge type={b.booking_type} /></td>
                   {showActions && (
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={() => setEditingBooking(b)}
-                          className="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                          onClick={() => onEdit(b)}
+                          className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium"
                         >
                           Edit
                         </button>
                         <button
-                          onClick={() => setConfirmCancelId(b.id)}
+                          onClick={() => onCancel(b.id)}
                           disabled={cancellingId === b.id}
-                          className="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 transition-colors"
+                          className="text-xs px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-40 transition-colors font-medium"
                         >
                           {cancellingId === b.id ? '…' : 'Cancel'}
                         </button>
@@ -294,21 +256,8 @@ function ListView({ bookings, onRefresh }: { bookings: Booking[]; onRefresh: () 
 
   return (
     <>
-      {editingBooking && (
-        <EditBookingModal
-          booking={editingBooking}
-          onClose={() => setEditingBooking(null)}
-          onSaved={handleSaved}
-        />
-      )}
-      {confirmCancelId && (
-        <ConfirmCancelModal
-          onConfirm={confirmCancel}
-          onClose={() => setConfirmCancelId(null)}
-        />
-      )}
-      <TableSection title="Upcoming Sessions" rows={upcomingLocal} emptyText="No upcoming sessions." showActions />
-      <TableSection title="Past & Cancelled" rows={pastLocal} emptyText="No past or cancelled sessions." />
+      <TableSection title="Upcoming Sessions" rows={upcoming} emptyText="No upcoming sessions." showActions />
+      <TableSection title="Past & Cancelled" rows={past} emptyText="No past or cancelled sessions." />
     </>
   )
 }
@@ -557,19 +506,31 @@ function DayView({ bookings, onSelect }: { bookings: Booking[]; onSelect: (b: Bo
   )
 }
 
-function BookingDetailModal({ booking, onClose }: { booking: Booking; onClose: () => void }) {
+function BookingDetailModal({
+  booking,
+  onClose,
+  onEdit,
+  onCancel,
+}: {
+  booking: Booking
+  onClose: () => void
+  onEdit?: (b: Booking) => void
+  onCancel?: (id: string) => void
+}) {
+  const isUpcoming = booking.status === 'active' && booking.booking_type !== 'cancel' && new Date(booking.scheduled_at) > new Date()
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-fade-in-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-900">Booking Detail</h2>
+          <h2 className="text-base font-semibold text-slate-900">Booking Details</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <div className="px-6 py-5 space-y-3">
+        <div className="px-6 py-5 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
               {booking.clients?.first_name?.[0] ?? '?'}
@@ -579,7 +540,7 @@ function BookingDetailModal({ booking, onClose }: { booking: Booking; onClose: (
               <p className="text-xs text-slate-400">{booking.clients?.phone_number ?? '—'}</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-50 rounded-lg px-3 py-2.5">
               <p className="text-xs text-slate-400 mb-0.5">Email</p>
               <p className="text-sm text-slate-700 break-all">{booking.email ?? booking.clients?.email ?? '—'}</p>
@@ -599,6 +560,22 @@ function BookingDetailModal({ booking, onClose }: { booking: Booking; onClose: (
               </p>
             </div>
           </div>
+          {isUpcoming && onEdit && onCancel && (
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => { onClose(); onEdit(booking) }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => { onClose(); onCancel(booking.id) }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -611,25 +588,59 @@ export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onR
   const [tab, setTab] = useState<Tab>('list')
   const [view, setView] = useState<View>('month')
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [localBookings, setLocalBookings] = useState(bookings)
+
+  useMemo(() => setLocalBookings(bookings), [bookings])
 
   const now = new Date()
-  const upcoming = bookings.filter(b =>
+  const upcoming = localBookings.filter(b =>
     b.booking_type !== 'cancel' &&
     b.status !== 'cancelled' &&
     b.status !== 'completed' &&
     new Date(b.scheduled_at) > now
   )
-  const past = bookings.filter(b =>
+  const past = localBookings.filter(b =>
     b.booking_type === 'cancel' ||
     b.status === 'cancelled' ||
     b.status === 'completed' ||
     new Date(b.scheduled_at) <= now
   )
 
+  function handleSaved(id: string, newIso: string) {
+    setLocalBookings(prev => prev.map(b => b.id === id ? { ...b, scheduled_at: newIso } : b))
+    onRefresh()
+  }
+
+  async function confirmCancel() {
+    if (!confirmCancelId) return
+    setCancellingId(confirmCancelId)
+    setConfirmCancelId(null)
+    const res = await fetch(`/api/bookings/${confirmCancelId}`, { method: 'DELETE' })
+    setCancellingId(null)
+    if (res.ok) {
+      setLocalBookings(prev => prev.map(b => b.id === confirmCancelId ? { ...b, status: 'cancelled' } : b))
+      onRefresh()
+    }
+  }
+
   return (
     <>
       {selectedBooking && (
-        <BookingDetailModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} />
+        <BookingDetailModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onEdit={b => { setSelectedBooking(null); setEditingBooking(b) }}
+          onCancel={id => { setSelectedBooking(null); setConfirmCancelId(id) }}
+        />
+      )}
+      {editingBooking && (
+        <EditBookingModal booking={editingBooking} onClose={() => setEditingBooking(null)} onSaved={handleSaved} />
+      )}
+      {confirmCancelId && (
+        <ConfirmCancelModal onConfirm={confirmCancel} onClose={() => setConfirmCancelId(null)} />
       )}
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -666,15 +677,23 @@ export function BookingsTabs({ bookings, onRefresh }: { bookings: Booking[]; onR
         </div>
       </div>
 
-      {tab === 'list' && <ListView bookings={bookings} onRefresh={onRefresh} />}
+      {tab === 'list' && (
+        <ListView
+          upcoming={upcoming}
+          past={past}
+          cancellingId={cancellingId}
+          onEdit={setEditingBooking}
+          onCancel={setConfirmCancelId}
+        />
+      )}
       {tab === 'calendar' && view === 'month' && (
-        <MonthView bookings={bookings} selected={selectedBooking} onSelect={setSelectedBooking} />
+        <MonthView bookings={localBookings} selected={selectedBooking} onSelect={setSelectedBooking} />
       )}
       {tab === 'calendar' && view === 'week' && (
-        <WeekView bookings={bookings} onSelect={setSelectedBooking} />
+        <WeekView bookings={localBookings} onSelect={setSelectedBooking} />
       )}
       {tab === 'calendar' && view === 'day' && (
-        <DayView bookings={bookings} onSelect={setSelectedBooking} />
+        <DayView bookings={localBookings} onSelect={setSelectedBooking} />
       )}
     </>
   )
