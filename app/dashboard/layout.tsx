@@ -2,7 +2,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
-import { NavigationProgress } from '@/components/NavigationProgress'
 import { ToastProvider } from '@/components/Toast'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { CommandPalette } from '@/components/CommandPalette'
@@ -19,7 +18,6 @@ export default async function DashboardLayout({
     <ToastProvider>
       <CommandPalette />
       <div className="flex h-screen bg-slate-50 overflow-hidden">
-        <NavigationProgress />
         <Sidebar
           userName={session.user?.name}
           userEmail={session.user?.email}

@@ -42,15 +42,18 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
     <>
       {/* Logo + collapse toggle */}
       {isCollapsible && collapsed ? (
-        /* Collapsed header: just the expand button, centered */
-        <div className="flex items-center justify-center py-4 border-b border-slate-800">
+        /* Collapsed header: M logo + expand button stacked */
+        <div className="flex flex-col items-center gap-1 py-3 border-b border-slate-800">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+            M
+          </div>
           <button
             onClick={toggleCollapsed}
             aria-label="Expand sidebar"
             title="Expand sidebar"
-            className="text-slate-400 hover:text-white transition-colors p-1.5 rounded hover:bg-slate-800"
+            className="w-8 h-6 flex items-center justify-center rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
             </svg>
           </button>
