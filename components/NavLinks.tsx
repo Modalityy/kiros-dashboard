@@ -64,7 +64,7 @@ export function NavLinks({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname()
 
   return (
-    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
       {navItems.map((item) => {
         const isActive = item.href === '/dashboard'
           ? pathname === '/dashboard'
@@ -74,18 +74,18 @@ export function NavLinks({ collapsed = false }: { collapsed?: boolean }) {
             key={item.href}
             href={item.href}
             title={collapsed ? item.label : undefined}
-            className={`flex items-center rounded-lg text-sm font-medium transition-colors group ${
-              collapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
-            } ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group ${
               isActive
                 ? 'bg-slate-800 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
-            <span className={`transition-colors flex-shrink-0 ${isActive ? 'text-blue-400' : 'group-hover:text-blue-400'}`}>
+            <span className={`flex-shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'group-hover:text-blue-400'}`}>
               {item.icon}
             </span>
-            {!collapsed && item.label}
+            <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${collapsed ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'}`}>
+              {item.label}
+            </span>
           </Link>
         )
       })}

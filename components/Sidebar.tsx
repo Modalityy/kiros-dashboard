@@ -18,11 +18,8 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
 
-  // Load persisted collapsed state
   useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem(COLLAPSED_KEY) === 'true')
-    } catch {}
+    try { setCollapsed(localStorage.getItem(COLLAPSED_KEY) === 'true') } catch {}
   }, [])
 
   const toggleCollapsed = () => {
@@ -33,10 +30,8 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
     })
   }
 
-  // Close mobile drawer on route change
   useEffect(() => { setOpen(false) }, [pathname])
 
-  // Close on Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('keydown', onKey)
@@ -45,16 +40,29 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
 
   const sidebarContent = (isCollapsible: boolean) => (
     <>
-      {/* Logo */}
-      <div className={`flex items-center border-b border-slate-800 ${collapsed && isCollapsible ? 'px-3 py-5 justify-center' : 'px-6 py-5 gap-3'}`}>
+      {/* Logo + collapse toggle */}
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-800 overflow-hidden">
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
           M
         </div>
-        {(!collapsed || !isCollapsible) && (
-          <div className="flex-1 min-w-0">
-            <div className="text-white font-semibold text-sm leading-tight">Meridian</div>
-            <div className="text-slate-400 text-xs">Console</div>
-          </div>
+        <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${collapsed && isCollapsible ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'}`}>
+          <div className="text-white font-semibold text-sm leading-tight whitespace-nowrap">Meridian</div>
+          <div className="text-slate-400 text-xs whitespace-nowrap">Console</div>
+        </div>
+        {/* Desktop collapse toggle — always visible, chevron rotates */}
+        {isCollapsible && (
+          <button
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="ml-auto flex-shrink-0 text-slate-400 hover:text-white transition-colors p-1 rounded hover:bg-slate-800"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform duration-300 ease-in-out ${collapsed ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+          </button>
         )}
         {/* Mobile close */}
         {!isCollapsible && (
@@ -68,87 +76,44 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
             </svg>
           </button>
         )}
-        {/* Desktop collapse toggle */}
-        {isCollapsible && (
-          <button
-            onClick={toggleCollapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={`text-slate-400 hover:text-white transition-colors p-1 rounded hover:bg-slate-800 ${collapsed ? 'hidden' : 'ml-auto flex-shrink-0'}`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
       </div>
 
       {/* ⌘K trigger */}
-      {(!collapsed || !isCollapsible) && (
-        <div className="px-3 pt-3 pb-1">
-          <button
-            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors text-xs"
-          >
-            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <span className="flex-1 text-left">Quick nav…</span>
-            <kbd className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
-          </button>
-        </div>
-      )}
-      {(collapsed && isCollapsible) && (
-        <div className="px-3 pt-3 pb-1">
-          <button
-            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
-            title="Quick nav (⌘K)"
-            className="w-full flex items-center justify-center p-2.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-        </div>
-      )}
+      <div className="px-3 pt-3 pb-1">
+        <button
+          onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
+          title={collapsed && isCollapsible ? 'Quick nav (⌘K)' : undefined}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors text-xs overflow-hidden"
+        >
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span className={`flex-1 text-left whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${collapsed && isCollapsible ? 'max-w-0 opacity-0' : 'max-w-[120px] opacity-100'}`}>
+            Quick nav…
+          </span>
+          <kbd className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${collapsed && isCollapsible ? 'max-w-0 opacity-0' : 'max-w-[40px] opacity-100'} text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono flex-shrink-0`}>
+            ⌘K
+          </kbd>
+        </button>
+      </div>
 
       {/* Nav */}
       <NavLinks collapsed={collapsed && isCollapsible} />
 
-      {/* Collapse toggle (icon-only mode — shown at bottom of nav) */}
-      {isCollapsible && collapsed && (
-        <div className={`px-3 py-2`}>
-          <button
-            onClick={toggleCollapsed}
-            title="Expand sidebar"
-            className="w-full flex items-center justify-center p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      )}
-
       {/* User / sign out */}
-      <div className={`border-t border-slate-800 ${collapsed && isCollapsible ? 'px-3 py-4 flex flex-col items-center gap-2' : 'px-4 py-4'}`}>
-        {collapsed && isCollapsible ? (
+      <div className="border-t border-slate-800 px-3 py-4 space-y-2">
+        <div className="flex items-center gap-3 overflow-hidden">
           <div
-            className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white text-xs font-medium"
-            title={`${userName} · ${userEmail}`}
+            className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+            title={collapsed && isCollapsible ? `${userName} · ${userEmail}` : undefined}
           >
             {userInitial}
           </div>
-        ) : (
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-              {userInitial}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-white text-xs font-medium truncate">{userName}</div>
-              <div className="text-slate-500 text-xs truncate">{userEmail}</div>
-            </div>
+          <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${collapsed && isCollapsible ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'}`}>
+            <div className="text-white text-xs font-medium truncate whitespace-nowrap">{userName}</div>
+            <div className="text-slate-500 text-xs truncate whitespace-nowrap">{userEmail}</div>
           </div>
-        )}
+        </div>
         <SignOutButton collapsed={collapsed && isCollapsible} />
       </div>
     </>
@@ -157,7 +122,7 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`hidden lg:flex flex-col flex-shrink-0 bg-slate-900 transition-all duration-200 ${collapsed ? 'w-16' : 'w-64'}`}>
+      <aside className={`hidden lg:flex flex-col flex-shrink-0 bg-slate-900 transition-[width] duration-300 ease-in-out overflow-hidden ${collapsed ? 'w-16' : 'w-64'}`}>
         {sidebarContent(true)}
       </aside>
 
@@ -183,9 +148,7 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
 
       {/* Mobile drawer */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-full w-64 bg-slate-900 flex flex-col z-50 transform transition-transform duration-200 ${
-          open ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`lg:hidden fixed top-0 left-0 h-full w-64 bg-slate-900 flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : '-translate-x-full'}`}
         aria-label="Navigation"
       >
         {sidebarContent(false)}
