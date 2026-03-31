@@ -12,8 +12,9 @@ function normalizePhone(phone: string) {
   return phone.replace(/\s+/g, '').replace(/[^\d+]/g, '')
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = getSupabase()
+  const { id } = await params
   const body = await req.json()
   const allowed = [
     'first_name', 'last_name', 'email', 'disc_profile',
@@ -30,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data, error } = await supabase
     .from('clients')
     .update(update)
-    .eq('id', params.id)
+    .eq('id', id)
     .select()
     .single()
 
@@ -46,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const { data: existing } = await supabase
         .from('bookings')
         .select('id')
-        .eq('client_id', params.id)
+        .eq('client_id', id)
         .eq('booking_type', 'schedule')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
@@ -60,7 +61,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           .eq('id', existing.id)
       } else {
         await supabase.from('bookings').insert({
-          client_id: params.id,
+          client_id: id,
           booking_type: 'schedule',
           appointment_type: 'Zoom Meeting',
           scheduled_at: newTime,
@@ -74,17 +75,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json(data)
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = getSupabase()
+  const { id } = await params
 
   // 1. Remove bookings linked to this client
-  await supabase.from('bookings').delete().eq('client_id', params.id)
+  await supabase.from('bookings').delete().eq('client_id', id)
 
   // 2. Nullify client_id on calls so call logs are kept but unlinked
-  await supabase.from('calls').update({ client_id: null }).eq('client_id', params.id)
+  await supabase.from('calls').update({ client_id: null }).eq('client_id', id)
 
   // 3. Delete the client
-  const { error } = await supabase.from('clients').delete().eq('id', params.id)
+  const { error } = await supabase.from('clients').delete().eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ deleted: true })

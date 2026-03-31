@@ -9,8 +9,9 @@ function getSupabase() {
 }
 
 // PATCH — update scheduled_at and sync to client zoom_meeting
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = getSupabase()
+  const { id } = await params
   const { scheduled_at } = await req.json()
 
   if (!scheduled_at) return NextResponse.json({ error: 'scheduled_at required' }, { status: 400 })
@@ -19,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data: booking, error } = await supabase
     .from('bookings')
     .update({ scheduled_at })
-    .eq('id', params.id)
+    .eq('id', id)
     .select('client_id')
     .single()
 
@@ -37,13 +38,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE — cancel the booking and clear client zoom_meeting
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const supabase = getSupabase()
+  const { id } = await params
 
   const { data: booking, error } = await supabase
     .from('bookings')
     .update({ status: 'cancelled' })
-    .eq('id', params.id)
+    .eq('id', id)
     .select('client_id')
     .single()
 
