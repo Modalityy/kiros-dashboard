@@ -103,7 +103,7 @@ function scorePillClass(score: string | null): string {
   return 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
 }
 
-function EvalCell({ value }: { value: string | null }) {
+function EvalCell({ value, onClick }: { value: string | null; onClick?: () => void }) {
   if (!value) return <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
   const lower = value.toLowerCase()
   const isPass = lower === 'true' || lower === 'success' || lower === 'passed' || lower === '1'
@@ -117,9 +117,47 @@ function EvalCell({ value }: { value: string | null }) {
   }
   const score = extractOverallScore(value)
   return (
-    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-semibold ${scorePillClass(score)}`}>
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold hover:opacity-75 transition-opacity ${scorePillClass(score)}`}
+    >
       {score ?? '—'}
-    </span>
+      <svg className="w-3 h-3 opacity-60 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </button>
+  )
+}
+
+function EvalModal({ value, callerName, onClose }: { value: string; callerName: string; onClose: () => void }) {
+  const score = extractOverallScore(value)
+  const cleaned = value
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^\s*\*+\s*/gm, '• ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white">Call Evaluation</h2>
+            {callerName && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{callerName}</p>}
+          </div>
+          <div className="flex items-center gap-3">
+            {score && <span className={`text-sm font-bold px-3 py-1 rounded-full ${scorePillClass(score)}`}>{score}</span>}
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto flex-1 px-6 py-4">
+          <pre className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-sans leading-relaxed">{cleaned}</pre>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -387,6 +425,7 @@ export function CallsTable() {
   const [calls, setCalls] = useState<Call[]>([])
   const [loadingCalls, setLoadingCalls] = useState(true)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+  const [filtersLoaded, setFiltersLoaded] = useState(false)
   const [search, setSearch] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
@@ -397,10 +436,37 @@ export function CallsTable() {
   const [selectedTranscript, setSelectedTranscript] = useState<{ callId: string; transcript: string; summary: string | null; notes: string | null } | null>(null)
   const [selectedRecording, setSelectedRecording] = useState<{ url: string; callerName: string; duration: number | null } | null>(null)
   const [selectedEndedReason, setSelectedEndedReason] = useState<{ reason: string; summary: string | null; vapiCallId: string } | null>(null)
+  const [selectedEval, setSelectedEval] = useState<{ value: string; callerName: string } | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set(['Direction', 'Ended Reason']))
   const [showColMenu, setShowColMenu] = useState(false)
+
+  // Load persisted filters from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('calls_filters') ?? '{}')
+      if (stored.search !== undefined) setSearch(stored.search)
+      if (stored.dateFrom !== undefined) setDateFrom(stored.dateFrom)
+      if (stored.dateTo !== undefined) setDateTo(stored.dateTo)
+      if (stored.sortKey) setSortKey(stored.sortKey)
+      if (stored.sortDir) setSortDir(stored.sortDir)
+      if (stored.pageSize) setPageSize(stored.pageSize)
+      if (stored.hiddenCols) setHiddenCols(new Set(stored.hiddenCols))
+    } catch {}
+    setFiltersLoaded(true)
+  }, [])
+
+  // Persist filters to localStorage whenever they change
+  useEffect(() => {
+    if (!filtersLoaded) return
+    try {
+      localStorage.setItem('calls_filters', JSON.stringify({
+        search, dateFrom, dateTo, sortKey, sortDir, pageSize,
+        hiddenCols: [...hiddenCols],
+      }))
+    } catch {}
+  }, [search, dateFrom, dateTo, sortKey, sortDir, pageSize, hiddenCols, filtersLoaded])
 
   const toggleCol = (col: string) => setHiddenCols(prev => {
     const next = new Set(prev)
@@ -538,6 +604,9 @@ export function CallsTable() {
           onClose={() => setSelectedRecording(null)}
         />
       )}
+      {selectedEval && (
+        <EvalModal value={selectedEval.value} callerName={selectedEval.callerName} onClose={() => setSelectedEval(null)} />
+      )}
       {selectedEndedReason && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setSelectedEndedReason(null)}>
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900 w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -609,17 +678,24 @@ export function CallsTable() {
               Columns
             </button>
             {showColMenu && (
-              <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-2 min-w-[160px]">
+              <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-1.5 min-w-[170px]">
                 {['Direction', 'Ended Reason', 'Cost'].map(col => (
-                  <label key={col} className="flex items-center gap-2.5 px-4 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={!hiddenCols.has(col)}
-                      onChange={() => toggleCol(col)}
-                      className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
-                    />
+                  <button
+                    key={col}
+                    onClick={e => { e.stopPropagation(); toggleCol(col) }}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                  >
+                    <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                      !hiddenCols.has(col) ? 'bg-blue-600 border-blue-600' : 'border-slate-300 dark:border-slate-600'
+                    }`}>
+                      {!hiddenCols.has(col) && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
                     {col}
-                  </label>
+                  </button>
                 ))}
               </div>
             )}
@@ -733,7 +809,7 @@ export function CallsTable() {
                         Recording
                       </button>
                     )}
-                    <EvalCell value={call.success_eval} />
+                    <EvalCell value={call.success_eval} onClick={call.success_eval ? () => setSelectedEval({ value: call.success_eval!, callerName: [call.clients?.first_name, call.clients?.last_name].filter(Boolean).join(' ') || call.phone_number }) : undefined} />
                   </div>
                 </div>
               </div>
@@ -868,7 +944,7 @@ export function CallsTable() {
                       </td>
                       {/* Eval */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <EvalCell value={call.success_eval} />
+                        <EvalCell value={call.success_eval} onClick={call.success_eval ? () => setSelectedEval({ value: call.success_eval!, callerName: [call.clients?.first_name, call.clients?.last_name].filter(Boolean).join(' ') || call.phone_number }) : undefined} />
                       </td>
                       {/* Cost */}
                       {!hiddenCols.has('Cost') && (
