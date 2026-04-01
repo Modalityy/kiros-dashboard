@@ -107,13 +107,14 @@ function EvalCell({ value }: { value: string | null }) {
     )
   }
 
-  // Longer eval text — show truncated with title tooltip
+  // Longer eval text — show as a readable badge with full text on hover
+  const preview = value.length > 28 ? value.slice(0, 28).trimEnd() + '…' : value
   return (
     <span
-      className="block text-xs text-slate-600 dark:text-slate-400 max-w-[160px] truncate"
+      className="inline-block text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 max-w-[180px] truncate cursor-default"
       title={value}
     >
-      {value}
+      {preview}
     </span>
   )
 }
