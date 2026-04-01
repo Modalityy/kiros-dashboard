@@ -4,8 +4,9 @@ import { sendSessionReminder } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
-// Called by Vercel Cron daily at 09:00 SGT (01:00 UTC).
-// Finds all active bookings scheduled between 24–25 hours from now and sends a reminder email.
+// Called by Vercel Cron daily at 01:00 UTC (09:00 SGT).
+// Finds all active bookings scheduled for tomorrow (SGT) and sends a reminder email.
+// Uses a full-day SGT window so all appointment times (morning through night) are covered.
 export async function GET(request: Request) {
   // Verify cron secret so the route can't be triggered by arbitrary HTTP requests
   const authHeader = request.headers.get('authorization')
@@ -18,9 +19,17 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const now = new Date()
-  const windowStart = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-  const windowEnd   = new Date(now.getTime() + 25 * 60 * 60 * 1000)
+  // Build tomorrow's full-day window in SGT (UTC+8).
+  // Supabase stores timestamps in UTC, so we convert SGT midnight → UTC.
+  const SGT_OFFSET_MS = 8 * 60 * 60 * 1000
+  const nowSGT = new Date(Date.now() + SGT_OFFSET_MS)
+  // Midnight tonight SGT = start of today SGT + 1 day
+  const todayMidnightSGT = new Date(
+    Date.UTC(nowSGT.getUTCFullYear(), nowSGT.getUTCMonth(), nowSGT.getUTCDate())
+  )
+  // Tomorrow in SGT = [tomorrowStart, dayAfterStart) in UTC
+  const windowStart = new Date(todayMidnightSGT.getTime() + 1 * 24 * 60 * 60 * 1000 - SGT_OFFSET_MS)
+  const windowEnd   = new Date(todayMidnightSGT.getTime() + 2 * 24 * 60 * 60 * 1000 - SGT_OFFSET_MS)
 
   const { data: bookings, error } = await supabase
     .from('bookings')

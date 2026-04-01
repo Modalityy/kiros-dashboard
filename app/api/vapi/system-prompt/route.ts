@@ -32,8 +32,12 @@ export async function GET() {
   }
 
   lines.push('')
-  lines.push('When a caller says "next [day]", find the first matching day in the list above.')
-  lines.push('Always confirm the full date (e.g., "Tuesday, April 1st") before booking.')
+  lines.push('INSTRUCTIONS FOR SCHEDULING:')
+  lines.push('- When a caller says "next [day]", find the first matching day in the list above.')
+  lines.push('- Always confirm the full date AND time (e.g., "Tuesday, April 1st at 2 PM") before booking.')
+  lines.push('- When building the dateTime for a booking, use YYYY-MM-DDThh:mm:ss+08:00 format.')
+  lines.push('- Use the time the CALLER requested — never use the current time as the appointment time.')
+  lines.push('- All times are Singapore Time (SGT, UTC+8). Always include the +08:00 offset in the ISO string.')
 
   return NextResponse.json(lines.join('\n'), {
     headers: { 'Content-Type': 'application/json' },

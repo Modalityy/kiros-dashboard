@@ -61,7 +61,7 @@ function buildTools() {
             firstName:       { type: 'string', description: 'First name — use from profile for returning callers.' },
             lastName:        { type: 'string', description: 'Last name — use from profile for returning callers.' },
             email:           { type: 'string', description: 'Email — use from profile for returning callers. Only ask caller if blank.' },
-            dateTime:        { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore time)' },
+            dateTime:        { type: 'string', description: 'The date and time the caller requested for their appointment. Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore Time, UTC+8). Use the exact time the caller stated — do NOT use the current time.' },
             bookingType:     { type: 'string', enum: ['schedule'] },
             appointmentType: { type: 'string', enum: ['Zoom Meeting'] },
             clientObjective: { type: 'string', description: "Caller's financial goal or objective." },
@@ -80,8 +80,8 @@ function buildTools() {
           required: ['newDateTime', 'bookingType', 'appointmentType'],
           properties: {
             email:           { type: 'string', description: 'Email from caller profile — do not ask caller to provide this.' },
-            newDateTime:     { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore time)' },
-            prevDateTime:    { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00' },
+            newDateTime:     { type: 'string', description: 'The new date and time the caller requested. Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore Time, UTC+8). Use the exact time the caller stated — do NOT use the current time.' },
+            prevDateTime:    { type: 'string', description: 'The previous appointment time. Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore Time, UTC+8).' },
             bookingType:     { type: 'string', enum: ['reschedule'] },
             appointmentType: { type: 'string', enum: ['Zoom Meeting'] },
           },
@@ -99,7 +99,7 @@ function buildTools() {
           required: ['bookingType', 'appointmentType'],
           properties: {
             email:           { type: 'string', description: 'Email from caller profile — do not ask caller to provide this.' },
-            prevDateTime:    { type: 'string', description: 'Format: YYYY-MM-DDThh:mm:ss+08:00' },
+            prevDateTime:    { type: 'string', description: 'The appointment time being cancelled. Format: YYYY-MM-DDThh:mm:ss+08:00 (Singapore Time, UTC+8).' },
             bookingType:     { type: 'string', enum: ['cancel'] },
             appointmentType: { type: 'string', enum: ['Zoom Meeting'] },
           },
