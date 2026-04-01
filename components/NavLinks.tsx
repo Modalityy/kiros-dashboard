@@ -77,7 +77,7 @@ export function NavLinks({ collapsed = false }: { collapsed?: boolean }) {
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group ${
               isActive
                 ? 'bg-slate-800 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >
             <span className={`flex-shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'group-hover:text-blue-400'}`}>

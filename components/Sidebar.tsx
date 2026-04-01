@@ -68,7 +68,7 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-white font-semibold text-sm leading-tight">Meridian</div>
-            <div className="text-slate-400 text-xs">Console</div>
+            <div className="text-slate-300 text-xs">Console</div>
           </div>
           {isCollapsible && (
             <button
@@ -101,7 +101,7 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
         <button
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
           title={collapsed && isCollapsible ? 'Quick nav (⌘K)' : undefined}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors text-xs overflow-hidden"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-xs overflow-hidden"
         >
           <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -129,7 +129,7 @@ export function Sidebar({ userName, userEmail, userInitial }: Props) {
           </div>
           <div className={`flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out ${collapsed && isCollapsible ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100'}`}>
             <div className="text-white text-xs font-medium truncate whitespace-nowrap">{userName}</div>
-            <div className="text-slate-500 text-xs truncate whitespace-nowrap">{userEmail}</div>
+            <div className="text-slate-400 text-xs truncate whitespace-nowrap">{userEmail}</div>
           </div>
         </div>
         {/* Theme toggle */}
