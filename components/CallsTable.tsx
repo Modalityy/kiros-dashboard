@@ -767,7 +767,7 @@ export function CallsTable() {
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">
                       {call.clients?.id && callerName
-                        ? <Link href={`/dashboard/clients/${call.clients.id}`} className="text-blue-600 dark:text-blue-400 hover:underline">{callerName}</Link>
+                        ? <Link href={`/dashboard/clients/${call.clients.id}?from=calls`} className="text-blue-600 dark:text-blue-400 hover:underline">{callerName}</Link>
                         : <span className="text-slate-400 dark:text-slate-500">Unknown</span>}
                     </div>
                     <div className="text-xs font-mono text-slate-500 dark:text-slate-400">{formatPhone(call.phone_number)}</div>
@@ -884,7 +884,7 @@ export function CallsTable() {
                       {/* Name */}
                       <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
                         {call.clients?.id && callerName !== call.phone_number
-                          ? <Link href={`/dashboard/clients/${call.clients.id}`} className="text-blue-600 dark:text-blue-400 hover:underline underline-offset-2">{callerName}</Link>
+                          ? <Link href={`/dashboard/clients/${call.clients.id}?from=calls`} className="text-blue-600 dark:text-blue-400 hover:underline underline-offset-2">{callerName}</Link>
                           : <span className="text-slate-300 dark:text-slate-600">—</span>}
                       </td>
                       {/* Direction */}

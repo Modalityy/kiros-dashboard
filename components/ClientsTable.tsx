@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { useRealtimeTable } from '@/hooks/useRealtimeTable'
 import { EmptyState } from '@/components/EmptyState'
 
@@ -521,6 +522,15 @@ export function ClientsTable() {
                             <InlineCell {...cellProps('first_name')} />
                             <span className="text-slate-300 dark:text-slate-600 text-xs flex-shrink-0">·</span>
                             <InlineCell {...cellProps('last_name')} />
+                            <Link
+                              href={`/dashboard/clients/${client.id}?from=clients`}
+                              title="View profile"
+                              className="flex-shrink-0 text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </Link>
                           </div>
                         </div>
                       </td>

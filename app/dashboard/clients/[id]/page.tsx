@@ -96,10 +96,19 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function ClientDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ from?: string }>
+}) {
+  const [{ id }, { from }] = await Promise.all([params, searchParams])
   const { client, calls, bookings } = await getClientData(id)
   if (!client) notFound()
+
+  const backHref = from === 'calls' ? '/dashboard/calls' : '/dashboard/clients'
+  const backLabel = from === 'calls' ? 'Back to Call Logs' : 'Back to Clients'
 
   const objectives = [client.objective_1, client.objective_2, client.objective_3, client.objective_4].filter(Boolean)
   const totalCost = calls.reduce((sum: number, c: any) => sum + (c.cost_cents ?? 0), 0)
@@ -111,13 +120,13 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       {/* Back */}
       <div className="mb-6">
         <Link
-          href="/dashboard/clients"
+          href={backHref}
           className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Back to Clients
+          {backLabel}
         </Link>
       </div>
 
