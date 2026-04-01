@@ -9,10 +9,17 @@ export async function GET() {
   const nowSGT = new Date(Date.now() + 8 * 60 * 60 * 1000)
   const today = startOfDay(nowSGT)
 
+  const currentTime = format(nowSGT, 'h:mm a')
+  const currentHour = nowSGT.getUTCHours()
+  const timeOfDay = currentHour < 12 ? 'morning' : currentHour < 17 ? 'afternoon' : 'evening'
+
   const lines: string[] = [
-    'PRE-CALCULATED DATES (Singapore Time — use these exact dates when a caller references a day):',
+    'CURRENT DATE & TIME (Singapore Time — SGT, UTC+8):',
     '',
     `Today: ${format(today, 'EEEE, MMMM d, yyyy')}`,
+    `Current time: ${currentTime} SGT (${timeOfDay})`,
+    '',
+    'PRE-CALCULATED DATES (use these exact dates when a caller references a day):',
     '',
   ]
 

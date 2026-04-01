@@ -21,7 +21,11 @@ export function useRealtimeTable(table: string, onchange: () => void) {
         { event: '*', schema: 'public', table },
         () => onchange()
       )
-      .subscribe()
+      .subscribe((_status, err) => {
+        // Silently degrade — polling fallback still runs every 60s.
+        // A 401 here means the anon key lacks Realtime access; don't crash.
+        if (err) console.warn(`[Realtime] ${table}:`, err.message ?? err)
+      })
 
     return () => {
       supabaseBrowser.removeChannel(channel)
