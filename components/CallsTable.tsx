@@ -87,35 +87,129 @@ function formatEndedReason(reason: string | null): string {
     .replace(/\b\w/g, c => c.toUpperCase())
 }
 
-// Show raw success_eval — VAPI returns nuanced text, not just true/false
-function EvalCell({ value }: { value: string | null }) {
-  if (!value) return <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+// Parse VAPI AutomaticRubric markdown into structured data
+function parseEval(text: string) {
+  const categories: { name: string; score: string; detail: string }[] = []
+  let overall: string | null = null
+  let result: string | null = null
+  const lines = text.split('\n')
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    const catMatch = line.match(/^\s*\*+\s+\*\*(.+?):\*\*\s*(\d+\/\d+)/)
+    if (catMatch) {
+      const name = catMatch[1].trim()
+      const score = catMatch[2]
+      const detailLines: string[] = []
+      let j = i + 1
+      while (j < lines.length && /^\s{2,}/.test(lines[j])) {
+        const dl = lines[j].trim().replace(/^\*+\s*/, '')
+        if (dl) detailLines.push(dl)
+        j++
+      }
+      categories.push({ name, score, detail: detailLines.join(' ') })
+      i = j
+      continue
+    }
+    const overallMatch = line.match(/\*\*Overall Score:\*\*\s*(\d+\/\d+)/)
+    if (overallMatch) { overall = overallMatch[1]; i++; continue }
+    if (/\*\*Evaluation Result:\*\*/.test(line)) {
+      result = lines.slice(i + 1).join('\n').trim()
+      break
+    }
+    i++
+  }
+  return { categories, overall, result }
+}
 
+function scoreColors(score: string | null) {
+  if (!score) return { pill: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400', bar: 'bg-slate-300 dark:bg-slate-600' }
+  const [num, den] = score.split('/').map(Number)
+  const r = den ? num / den : 0
+  if (r >= 0.9) return { pill: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300', bar: 'bg-green-500' }
+  if (r >= 0.7) return { pill: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300', bar: 'bg-blue-500' }
+  if (r >= 0.5) return { pill: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300', bar: 'bg-amber-400' }
+  return { pill: 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300', bar: 'bg-red-500' }
+}
+
+function EvalCell({ value, onClick }: { value: string | null; onClick?: () => void }) {
+  if (!value) return <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
   const lower = value.toLowerCase()
   const isPass = lower === 'true' || lower === 'success' || lower === 'passed' || lower === '1'
   const isFail = lower === 'false' || lower === 'failed' || lower === '0'
-
   if (isPass || isFail) {
     return (
-      <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${
-        isPass
-          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-          : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
-      }`}>
+      <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${isPass ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'}`}>
         {isPass ? 'Pass' : 'Fail'}
       </span>
     )
   }
-
-  // Longer eval text — show as a readable badge with full text on hover
-  const preview = value.length > 28 ? value.slice(0, 28).trimEnd() + '…' : value
+  const { overall } = parseEval(value)
+  const { pill } = scoreColors(overall)
   return (
-    <span
-      className="inline-block text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 max-w-[180px] truncate cursor-default"
-      title={value}
-    >
-      {preview}
-    </span>
+    <button onClick={onClick} className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold cursor-pointer hover:opacity-75 transition-opacity ${pill}`}>
+      {overall ?? 'View'}
+      <svg className="w-3 h-3 opacity-60 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </button>
+  )
+}
+
+function EvalModal({ value, callerName, onClose }: { value: string; callerName: string; onClose: () => void }) {
+  const { categories, overall, result } = parseEval(value)
+  const { pill: overallPill } = scoreColors(overall)
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white">Call Evaluation</h2>
+            {callerName && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{callerName}</p>}
+          </div>
+          <div className="flex items-center gap-3">
+            {overall && <span className={`text-sm font-bold px-3 py-1 rounded-full ${overallPill}`}>{overall}</span>}
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
+          {categories.length > 0 && (
+            <div className="space-y-2">
+              {categories.map((cat, i) => {
+                const [num, den] = cat.score.split('/').map(Number)
+                const ratio = den ? num / den : 0
+                const { pill, bar } = scoreColors(cat.score)
+                return (
+                  <div key={i} className="rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{cat.name}</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${pill}`}>{cat.score}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <div className={`h-full rounded-full ${bar} transition-all`} style={{ width: `${ratio * 100}%` }} />
+                    </div>
+                    {cat.detail && <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">{cat.detail}</p>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {result && (
+            <div>
+              <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Evaluation Result</h3>
+              <p className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/30 rounded-xl px-4 py-3 leading-relaxed">{result}</p>
+            </div>
+          )}
+          {categories.length === 0 && !result && (
+            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{value}</p>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -395,6 +489,15 @@ export function CallsTable() {
   const [selectedEndedReason, setSelectedEndedReason] = useState<{ reason: string; summary: string | null; vapiCallId: string } | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [selectedEval, setSelectedEval] = useState<{ value: string; callerName: string } | null>(null)
+  const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set(['Direction', 'Ended Reason']))
+  const [showColMenu, setShowColMenu] = useState(false)
+
+  const toggleCol = (col: string) => setHiddenCols(prev => {
+    const next = new Set(prev)
+    next.has(col) ? next.delete(col) : next.add(col)
+    return next
+  })
 
   const fetchCalls = useCallback(async (silent = false) => {
     if (!silent) setLoadingCalls(true)
@@ -439,6 +542,14 @@ export function CallsTable() {
   useRealtimeTable('calls', useCallback(() => fetchCalls(true), [fetchCalls]))
 
   useEffect(() => { setPage(1) }, [search, dateFrom, dateTo, sortKey, sortDir, pageSize])
+
+  // Close column menu on outside click
+  useEffect(() => {
+    if (!showColMenu) return
+    const handler = () => setShowColMenu(false)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [showColMenu])
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -518,6 +629,9 @@ export function CallsTable() {
           onClose={() => setSelectedRecording(null)}
         />
       )}
+      {selectedEval && (
+        <EvalModal value={selectedEval.value} callerName={selectedEval.callerName} onClose={() => setSelectedEval(null)} />
+      )}
       {selectedEndedReason && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setSelectedEndedReason(null)}>
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900 w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -577,6 +691,33 @@ export function CallsTable() {
           )}
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {/* Column visibility toggle */}
+          <div className="relative" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setShowColMenu(v => !v)}
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+              Columns
+            </button>
+            {showColMenu && (
+              <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg py-2 min-w-[160px]">
+                {['Direction', 'Ended Reason', 'Cost'].map(col => (
+                  <label key={col} className="flex items-center gap-2.5 px-4 py-1.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={!hiddenCols.has(col)}
+                      onChange={() => toggleCol(col)}
+                      className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+                    />
+                    {col}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
           {lastRefreshed && (
             <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:block">
               Updated {lastRefreshed.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}
@@ -684,7 +825,10 @@ export function CallsTable() {
                         Recording
                       </button>
                     )}
-                    <EvalCell value={call.success_eval} />
+                    <EvalCell
+                      value={call.success_eval}
+                      onClick={call.success_eval ? () => setSelectedEval({ value: call.success_eval!, callerName: callerName || call.phone_number }) : undefined}
+                    />
                   </div>
                 </div>
               </div>
@@ -699,11 +843,13 @@ export function CallsTable() {
           <table className="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
             <thead className="bg-slate-50 dark:bg-slate-950">
               <tr>
-                {staticCols.slice(0, 4).map(col => (
-                  <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
-                    {col}
-                  </th>
+                {/* Call ID, Phone, Name always shown */}
+                {['Call ID', 'Phone', 'Name'].map(col => (
+                  <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">{col}</th>
                 ))}
+                {!hiddenCols.has('Direction') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">Direction</th>
+                )}
                 {/* Sortable: Date, Duration */}
                 {SORTABLE.slice(0, 2).map(({ label, key }) => (
                   <th key={key} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
@@ -712,17 +858,19 @@ export function CallsTable() {
                     </button>
                   </th>
                 ))}
-                {staticCols.slice(4).map(col => (
-                  <th key={col} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
-                    {col}
+                {!hiddenCols.has('Ended Reason') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">Ended Reason</th>
+                )}
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">Transcript</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">Recording</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">Eval</th>
+                {!hiddenCols.has('Cost') && (
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
+                    <button onClick={() => toggleSort('cost_cents')} className="flex items-center gap-0.5 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                      Cost <SortIcon active={sortKey === 'cost_cents'} dir={sortDir} />
+                    </button>
                   </th>
-                ))}
-                {/* Cost last — sortable */}
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">
-                  <button onClick={() => toggleSort('cost_cents')} className="flex items-center gap-0.5 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
-                    Cost <SortIcon active={sortKey === 'cost_cents'} dir={sortDir} />
-                  </button>
-                </th>
+                )}
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
@@ -759,9 +907,11 @@ export function CallsTable() {
                           : <span className="text-slate-300 dark:text-slate-600">—</span>}
                       </td>
                       {/* Direction */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <DirectionBadge direction={callDirection(call)} />
-                      </td>
+                      {!hiddenCols.has('Direction') && (
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <DirectionBadge direction={callDirection(call)} />
+                        </td>
+                      )}
                       {/* Date (sortable) */}
                       <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {formatDateTime(call.started_at)}
@@ -771,18 +921,20 @@ export function CallsTable() {
                         {formatDuration(call.duration_seconds)}
                       </td>
                       {/* Ended Reason — clickable for details */}
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {call.ended_reason ? (
-                          <button
-                            onClick={() => setSelectedEndedReason({ reason: call.ended_reason!, summary: call.summary, vapiCallId: call.vapi_call_id })}
-                            className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline underline-offset-2 transition-colors text-left"
-                          >
-                            {formatEndedReason(call.ended_reason)}
-                          </button>
-                        ) : (
-                          <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
-                        )}
-                      </td>
+                      {!hiddenCols.has('Ended Reason') && (
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {call.ended_reason ? (
+                            <button
+                              onClick={() => setSelectedEndedReason({ reason: call.ended_reason!, summary: call.summary, vapiCallId: call.vapi_call_id })}
+                              className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:underline underline-offset-2 transition-colors text-left"
+                            >
+                              {formatEndedReason(call.ended_reason)}
+                            </button>
+                          ) : (
+                            <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+                          )}
+                        </td>
+                      )}
                       {/* Transcript */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         {call.transcript ? (
@@ -811,12 +963,17 @@ export function CallsTable() {
                       </td>
                       {/* Eval */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <EvalCell value={call.success_eval} />
+                        <EvalCell
+                          value={call.success_eval}
+                          onClick={call.success_eval ? () => setSelectedEval({ value: call.success_eval!, callerName }) : undefined}
+                        />
                       </td>
-                      {/* Cost — last */}
-                      <td className="px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                        {formatCost(call.cost_cents)}
-                      </td>
+                      {/* Cost */}
+                      {!hiddenCols.has('Cost') && (
+                        <td className="px-4 py-3 text-xs font-mono text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                          {formatCost(call.cost_cents)}
+                        </td>
+                      )}
                       {/* Delete */}
                       <td className="px-2 py-3 whitespace-nowrap">
                         <button
