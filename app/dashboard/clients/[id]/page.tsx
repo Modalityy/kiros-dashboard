@@ -101,9 +101,11 @@ export default async function ClientDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ from?: string }>
+  searchParams?: Promise<{ from?: string }> | { from?: string }
 }) {
-  const [{ id }, { from }] = await Promise.all([params, searchParams])
+  const { id } = await params
+  const sp = searchParams ? (searchParams instanceof Promise ? await searchParams : searchParams) : {}
+  const from = (sp as { from?: string })?.from
   const { client, calls, bookings } = await getClientData(id)
   if (!client) notFound()
 
